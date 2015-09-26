@@ -1,0 +1,3 @@
+[submodule "src/tinyprintf"]
+	path = src/tinyprintf
+	url = https://github.com/cjlano/tinyprintf.git
