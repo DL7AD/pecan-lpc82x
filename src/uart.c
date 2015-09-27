@@ -31,6 +31,7 @@
 
 #include "chip.h"
 #include <string.h>
+#include "uart.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -47,7 +48,7 @@ static void errorUART(void)
 }
 
 /* Setup UART handle and parameters */
-UART_HANDLE_T* setupUART(void)
+UART_HANDLE_T* Init_UART(uint32_t baudrate)
 {
 	uint32_t frg_mult;
 
@@ -66,7 +67,7 @@ UART_HANDLE_T* setupUART(void)
 	/* 9.6KBPS, 8N1, ASYNC mode, no errors, clock filled in later */
 	UART_CONFIG_T cfg = {
 		0,				/* U_PCLK frequency in Hz */
-		9600,			/* Baud Rate in Hz */
+		baudrate,		/* Baud Rate in Hz */
 		1,				/* 8N1 */
 		0,				/* Asynchronous Mode */
 		NO_ERR_EN		/* Enable No Errors */
@@ -100,9 +101,14 @@ UART_HANDLE_T* setupUART(void)
 	return uartHandle;
 }
 
+void UART_DeInit(UART_HANDLE_T* uartHandle)
+{
+
+}
+
 /* Send a string on the UART terminated by a NULL character using
    polling mode. */
-void putLineUART(UART_HANDLE_T *uartHandle, const char *send_data)
+void putLineUART(UART_HANDLE_T *uartHandle, const uint8_t *send_data)
 {
 	UART_PARAM_T param;
 
@@ -121,7 +127,7 @@ void putLineUART(UART_HANDLE_T *uartHandle, const char *send_data)
 
 /* Receive a string on the UART terminated by a LF character using
    polling mode. */
-void getLineUART(UART_HANDLE_T *uartHandle, char *receive_buffer, uint32_t length)
+void getLineUART(UART_HANDLE_T *uartHandle, uint8_t *receive_buffer, uint32_t length)
 {
 	UART_PARAM_T param;
 

@@ -93,7 +93,6 @@
 	#define GPS_BUS				BUS_UART		// Use UART bus for GPS communication
 	#define GPS_BAUDRATE		9600			// Baudrate for ublox MAX7 or MAX8
 	#define REF_MV				2050
-	#define USE_GPS_HW_SW						// Use Hardware switch for GPS power
 
 	#define ADC_PIO_BATT		R_PIO1_2
 	#define ADC_AD_BATT			AD3

@@ -1,9 +1,8 @@
 #include "config.h"
 #include "modem.h"
-#include "target.h"
-#include "global.h"
 #include "Si446x.h"
 #include "gps.h"
+#include "types.h"
 
 // Sine table
 const uint8_t sine_table[512] = {
@@ -80,17 +79,18 @@ void Modem_Init(void)
 	radioTune(gps_get_region_frequency(), RADIO_POWER);
 
 	// Setup sampling timer
-	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<7);	// Enable TIMER16_0 clock
-	LPC_TMR16B0->MR3 = 255;					// MR3 = Period
-	LPC_TMR16B0->MCR = 0x401;				// MR3 resets timer & MR0 generates interrupt
-	LPC_TMR16B0->TCR = 0b1;					// Enable Timer
+	//LPC_SYSCON->SYSAHBCLKCTRL |= (1<<7);	// Enable TIMER16_0 clock
+	//LPC_TMR16B0->MR3 = 255;					// MR3 = Period
+	//LPC_TMR16B0->MCR = 0x401;				// MR3 resets timer & MR0 generates interrupt
+	//LPC_TMR16B0->TCR = 0b1;					// Enable Timer
 
-	NVIC_SetPriority(TIMER_16_0_IRQn, INT_PRIORITY_TMR16B0);
-	NVIC_EnableIRQ(TIMER_16_0_IRQn);
+	//NVIC_SetPriority(TIMER_16_0_IRQn, INT_PRIORITY_TMR16B0);
+	//NVIC_EnableIRQ(TIMER_16_0_IRQn);
 }
 
 bool modem_busy() {
-	return LPC_TMR16B0->TCR & 0b1;			// Is sample timer activated?
+	//return LPC_TMR16B0->TCR & 0b1;			// Is sample timer activated?
+	return 0;
 }
 
 void modem_flush_frame(void) {
@@ -118,8 +118,8 @@ void modem_flush_frame(void) {
 void On_Sample_Handler(void) {
 	// If done sending packet
 	if(packet_pos == modem_packet_size) {
-		LPC_TMR16B0->TCR = 0b10;	// Disable playback interrupt.
-		LPC_TMR16B0->IR = 0x01;		// Clear interrupt
+		//LPC_TMR16B0->TCR = 0b10;	// Disable playback interrupt.
+		//LPC_TMR16B0->IR = 0x01;		// Clear interrupt
 		return;						// Done
 	}
 
@@ -146,5 +146,5 @@ void On_Sample_Handler(void) {
 		packet_pos++;
 	}
 
-	LPC_TMR16B0->IR = 0x01; // Clear interrupt
+	//LPC_TMR16B0->IR = 0x01; // Clear interrupt
 }

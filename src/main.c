@@ -24,7 +24,7 @@
 #include "uart.h"
 #include "debug.h"
 #include "adc.h"
-#include "bmp180.h"
+#include "time.h"
 
 /**
  * Enter power save mode for 8 seconds. Power save is disabled and replaced by

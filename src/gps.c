@@ -23,18 +23,8 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
-#include "global.h"
-#include "LPC11xx.h"
 #include "config.h"
-
-#define PI	3.1415926536
-
-#define GPS_RESET(Select) { \
-	if (Select) \
-		GPS_GPIO_RESET->DATA &= ~GPS_PIN_RESET; \
-	else \
-		GPS_GPIO_RESET->DATA |= GPS_PIN_RESET; \
-}
+#include "time.h"
 
 #define GPS_EN_SET(Select) { \
 	if (Select) \
@@ -204,6 +194,7 @@ gps_t newFix;
 gps_t lastFix;
 uint64_t time_lastRMCpacket;
 uint64_t time_lastGGApacket;
+static UART_HANDLE_T* uartHandle;
 
 // Module variables
 static sentence_t sentence_type = SENTENCE_UNK;
@@ -344,20 +335,18 @@ void parse_altitude(const char *token)
 
 void GPS_Init() {
 	// Configure pins
-	LPC_IOCON->GPS_PIO_RESET = 0x30;		// GPS reset pin
-	GPS_GPIO_RESET->DIR |= GPS_PIN_RESET;	// Set output
+	//LPC_IOCON->GPS_PIO_RESET = 0x30;		// GPS reset pin
+	//GPS_GPIO_RESET->DIR |= GPS_PIN_RESET;	// Set output
 
-	#ifdef USE_GPS_HW_SW
-	LPC_IOCON->GPS_PIO_EN = 0x30;			// GPS enable pin
-	GPS_GPIO_EN->DIR |= GPS_PIN_EN;			// Set output
-	#endif
+	//LPC_IOCON->GPS_PIO_EN = 0x30;			// GPS enable pin
+	//GPS_GPIO_EN->DIR |= GPS_PIN_EN;			// Set output
 
 	UART_Init(GPS_BAUDRATE);				// Init UART
 	GPS_PowerOn();							// Init GPS
 }
 
 void GPS_hibernate_uart(void) {
-	UART_DeInit();							// Stop UART
+	UART_DeInit(uartHandle);				// Stop UART
 }
 
 void GPS_wake_uart(void) {
@@ -369,7 +358,7 @@ void GPS_PowerOff(void) {
 	gps_hw_switch(false);					// Power down GPS
 	#endif
 
-	UART_DeInit();							// Power off UART
+	UART_DeInit(uartHandle);				// Power off UART
 	isOn = false;
 }
 
@@ -405,38 +394,22 @@ void GPS_PowerOn(void) {
 
 void gps_set_nmeaCompatibility()
 {
-	uint8_t i;
-	for(i=0; i<sizeof(UBX_SET_NMEA); i++) {
-		UART_TransmitChar(UBX_SET_NMEA[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_SET_NMEA);
 }
 
 void gps_set_gps_only()
 {
-	uint8_t i;
-	for(i=0; i<sizeof(UBX_GPS_ONLY); i++) {
-		UART_TransmitChar(UBX_GPS_ONLY[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_GPS_ONLY);
 }
 
 void gps_set_airborne_model()
 {
-	uint8_t i;
-	for(i=0; i<sizeof(UBX_AIRBORNE_MODEL); i++) {
-		UART_TransmitChar(UBX_AIRBORNE_MODEL[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_AIRBORNE_MODEL);
 }
 
 void gps_configure_power_save()
 {
-	uint8_t i;
-	for(i=0; i<sizeof(UBX_CONFIGURE_POWERSAVE); i++) {
-		UART_TransmitChar(UBX_CONFIGURE_POWERSAVE[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_CONFIGURE_POWERSAVE);
 }
 
 /**
@@ -446,44 +419,19 @@ void gps_configure_power_save()
  */
 void gps_activate_power_save()
 {
-	uint8_t i;
-	for(i=0; i<sizeof(UBX_SWITCH_POWERSAVE_ON); i++) {
-		UART_TransmitChar(UBX_SWITCH_POWERSAVE_ON[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_SWITCH_POWERSAVE_ON);
 }
 
 void gps_disable_power_save()
 {
-	uint8_t i;
-	for(i=0; i<sizeof(UBX_SWITCH_POWERSAVE_OFF); i++) {
-		UART_TransmitChar(UBX_SWITCH_POWERSAVE_OFF[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_SWITCH_POWERSAVE_OFF);
 }
 
 void gps_configureActiveNMEASentences() {
-	uint8_t i;
-
-	for(i=0; i<sizeof(UBX_SETGLLOFF); i++) {
-		UART_TransmitChar(UBX_SETGLLOFF[i]);
-		delay(1);
-	}
-
-	for(i=0; i<sizeof(UBX_SETGSAOFF); i++) {
-		UART_TransmitChar(UBX_SETGSAOFF[i]);
-		delay(1);
-	}
-
-	for(i=0; i<sizeof(UBX_SETGSVOFF); i++) {
-		UART_TransmitChar(UBX_SETGSVOFF[i]);
-		delay(1);
-	}
-
-	for(i=0; i<sizeof(UBX_SETVTGOFF); i++) {
-		UART_TransmitChar(UBX_SETVTGOFF[i]);
-		delay(1);
-	}
+	putLineUART(uartHandle, UBX_SETGLLOFF);
+	putLineUART(uartHandle, UBX_SETGSAOFF);
+	putLineUART(uartHandle, UBX_SETGSVOFF);
+	putLineUART(uartHandle, UBX_SETVTGOFF);
 }
 
 /**
@@ -641,13 +589,6 @@ uint32_t gps_get_region_frequency()
 void gpsSetTime2lock(uint32_t ms)
 {
 	lastFix.ttff = ms < 255 ? ms : 255;
-}
-
-void gps_reset(void) {
-	GPS_RESET(HIGH);
-	delay(10);
-	GPS_RESET(LOW);
-	delay(1000);
 }
 
 /**

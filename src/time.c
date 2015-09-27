@@ -1,4 +1,5 @@
 #include "types.h"
+#include "chip.h"
 
 int64_t unixTimeStamp = 0; // UNIX timestamp in milliseconds
 const uint16_t nonLeapYear[] = {0,31,59,90,120,151,181,212,243,273,304,334,365};

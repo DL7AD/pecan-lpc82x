@@ -3,8 +3,9 @@
 
 #include <chip.h>
 
-UART_HANDLE_T* setupUART(void);
-void putLineUART(UART_HANDLE_T *uartHandle, const char *send_data);
-void getLineUART(UART_HANDLE_T *uartHandle, char *receive_buffer, uint32_t length);
+UART_HANDLE_T* UART_Init(uint32_t baudrate);
+void UART_DeInit(UART_HANDLE_T* uartHandle);
+void putLineUART(UART_HANDLE_T *uartHandle, const uint8_t *send_data);
+void getLineUART(UART_HANDLE_T *uartHandle, uint8_t *receive_buffer, uint32_t length);
 
 #endif

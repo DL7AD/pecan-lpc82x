@@ -7,8 +7,9 @@
 #include "Si446x.h"
 #include "config.h"
 #include "chip.h"
-// #include "spi.h"
+#include "spi.h"
 #include "time.h"
+#include "chip.h"
 
 #define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_PIN_SDN, Select)
 #define RADIO_SDN_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_PIN_SDN, Select)
