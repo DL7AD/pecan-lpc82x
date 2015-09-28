@@ -13,11 +13,11 @@ static char recv_buf[RECV_BUFF_SIZE];
 static UART_HANDLE_T *uartHandle;
 
 
-int main(void)
+/*int main(void)
 {
 
 
-}
+}*/
 
 
 int uart_example(void)

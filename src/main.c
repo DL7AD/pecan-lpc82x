@@ -25,6 +25,7 @@
 #include "debug.h"
 #include "adc.h"
 #include "time.h"
+#include "chip.h"
 
 /**
  * Enter power save mode for 8 seconds. Power save is disabled and replaced by
@@ -124,7 +125,7 @@ int main(void)
 				// Parse NMEA
 				if(gpsIsOn()) {
 					uint8_t c;
-					while(UART_ReceiveChar(&c)) {
+					while(UART_RxByte(&c)) {
 						if(gps_decode(c)) { // Lock and 5 sats are used
 							#ifdef USE_GPS_POWER_SAVE
 							gps_activate_power_save(); // Activate power save mode
@@ -173,8 +174,8 @@ int main(void)
 				trackPoint.pressure = getPressure();
 				BMP180_DeInit();
 				#else
-				Si406x_Init();
-				trackPoint.temp = Si406x_getTemperature();
+				Si446x_Init();
+				trackPoint.temp = Si446x_getTemperature();
 				radioShutdown();
 				#endif
 

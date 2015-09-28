@@ -3,6 +3,7 @@
 #include "Si446x.h"
 #include "gps.h"
 #include "types.h"
+#include "chip.h"
 
 // Sine table
 const uint8_t sine_table[512] = {
@@ -47,7 +48,7 @@ const uint8_t sine_table[512] = {
 
 #define TX_CPU_CLOCK		12000000
 #define TABLE_SIZE			sizeof(sine_table)
-#define PLAYBACK_RATE		(TX_CPU_CLOCK / 256) // When transmitting CPU is switched to 48 MHz -> 187.5 kHz
+#define PLAYBACK_RATE		(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
 #define BAUD_RATE			1200
 #define SAMPLES_PER_BAUD	(PLAYBACK_RATE / BAUD_RATE) // 52.083333333 / 26.041666667
 #define PHASE_DELTA_1200	(((TABLE_SIZE * 1200) << 7) / PLAYBACK_RATE) // Fixed point 9.7 // 1258 / 2516
@@ -60,6 +61,7 @@ static uint16_t current_sample_in_baud;    // 1 bit = SAMPLES_PER_BAUD samples
 static uint32_t phase_delta;                // 1200/2200 for standard AX.25
 static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
 static uint32_t packet_pos;                 // Next bit to be sent out
+static bool modem_busy = false;				// Is timer running
 
 // Exported globals
 uint16_t modem_packet_size = 0;
@@ -73,24 +75,22 @@ uint8_t modem_packet[MODEM_MAX_PACKET];
 void Modem_Init(void)
 {
 	// Initialize radio
-	Si406x_Init();
+	Si446x_Init();
 
 	// Set radio power and frequency
 	radioTune(gps_get_region_frequency(), RADIO_POWER);
 
 	// Setup sampling timer
-	//LPC_SYSCON->SYSAHBCLKCTRL |= (1<<7);	// Enable TIMER16_0 clock
-	//LPC_TMR16B0->MR3 = 255;					// MR3 = Period
-	//LPC_TMR16B0->MCR = 0x401;				// MR3 resets timer & MR0 generates interrupt
-	//LPC_TMR16B0->TCR = 0b1;					// Enable Timer
-
-	//NVIC_SetPriority(TIMER_16_0_IRQn, INT_PRIORITY_TMR16B0);
-	//NVIC_EnableIRQ(TIMER_16_0_IRQn);
-}
-
-bool modem_busy() {
-	//return LPC_TMR16B0->TCR & 0b1;			// Is sample timer activated?
-	return 0;
+	Chip_SCT_Config(LPC_SCT, SCT_CONFIG_32BIT_COUNTER | SCT_CONFIG_CLKMODE_BUSCLK);
+	Chip_SCT_SetMatchCount(LPC_SCT, SCT_MATCH_0, SystemCoreClock / PLAYBACK_RATE);	// Set the match count for match register 0
+	Chip_SCT_SetMatchReload(LPC_SCT, SCT_MATCH_0, SystemCoreClock / PLAYBACK_RATE);	// Set the match reload value for match reload register 0
+	LPC_SCT->EV[0].CTRL = (1 << 12);												// Event 0 only happens on a match condition
+	LPC_SCT->EV[0].STATE = 0x00000001;												// Event 0 only happens in state 0
+	LPC_SCT->LIMIT_U = 0x00000001;													// Event 0 is used as the counter limit
+	Chip_SCT_EnableEventInt(LPC_SCT, SCT_EVT_0);									// Enable flag to request an interrupt for Event 0
+	NVIC_EnableIRQ(SCT_IRQn);														// Enable the interrupt for the SCT
+	Chip_SCT_ClearControl(LPC_SCT, SCT_CTRL_HALT_L);								// Start the SCT counter by clearing Halt_L in the SCT control register
+	modem_busy = true;
 }
 
 void modem_flush_frame(void) {
@@ -103,7 +103,7 @@ void modem_flush_frame(void) {
 		GPS_hibernate_uart();				// Hibernate UART because it would interrupt the modulation
 	Modem_Init();							// Initialize timers and radio
 
-	while(modem_busy())						// Wait for radio getting finished
+	while(modem_busy)						// Wait for radio getting finished
 		__WFI();
 
 	radioShutdown();						// Shutdown radio
@@ -115,12 +115,13 @@ void modem_flush_frame(void) {
  * Interrupt routine which is called <PLAYBACK_RATE> times per second.
  * This method is supposed to load the next sample into the PWM timer.
  */
-void On_Sample_Handler(void) {
+void SCT_IRQHandler(void) {
 	// If done sending packet
 	if(packet_pos == modem_packet_size) {
-		//LPC_TMR16B0->TCR = 0b10;	// Disable playback interrupt.
-		//LPC_TMR16B0->IR = 0x01;		// Clear interrupt
-		return;						// Done
+		Chip_SCT_SetControl(LPC_SCT, SCT_CTRL_HALT_L);	// Stop the SCT counter by setting Halt_L in the SCT control register
+		Chip_SCT_ClearEventFlag(LPC_SCT, SCT_EVT_0);	// Clear interrupt
+		modem_busy = false;								// Set modem busy flag
+		return;											// Done
 	}
 
 	// If sent SAMPLES_PER_BAUD already, go to the next bit
@@ -146,5 +147,5 @@ void On_Sample_Handler(void) {
 		packet_pos++;
 	}
 
-	//LPC_TMR16B0->IR = 0x01; // Clear interrupt
+	Chip_SCT_ClearEventFlag(LPC_SCT, SCT_EVT_0); // Clear interrupt
 }

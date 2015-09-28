@@ -90,84 +90,24 @@
 #if TARGET == TARGET_PECAN_FEMTO3
 
 	#define SOLAR_AVAIL							// Solar feed available
-	#define GPS_BUS				BUS_UART		// Use UART bus for GPS communication
 	#define GPS_BAUDRATE		9600			// Baudrate for ublox MAX7 or MAX8
-	#define REF_MV				2050
+	#define REF_MV				3300
 
-	#define ADC_PIO_BATT		R_PIO1_2
-	#define ADC_AD_BATT			AD3
+	#define UART_RXD_PIN		0
+	#define UART_TXD_PIN		14
 
-	#define ADC_PIO_SOLAR		R_PIO1_2
-	#define ADC_AD_SOLAR		AD3
+	#define ADC_BATT_PIN		4
+	#define ADC_SOLAR_PIN		17
 
-	#define LDO_GPIO_EN			LPC_GPIO1
-	#define LDO_PIO_EN			R_PIO1_2
-	#define LDO_PIN_EN			(1 << 2)
+	#define RADIO_MOSI_PIN		27
+	#define RADIO_MISO_PIN		26
+	#define RADIO_SCK_PIN		25
+	#define RADIO_CS_PIN		16
+	#define RADIO_SDN_PIN		10
+	#define RADIO_GPIO_PIN		1
 
-	#define I2C_GPIO_PULL_VCC	LPC_GPIO1
-	#define I2C_PIO_PULL_VCC	PIO1_9
-	#define I2C_PIN_PULL_VCC	(1 << 9)
-
-	#define UART_PIO_RXD		PIO1_6
-	#define UART_PIO_TXD		PIO1_7
-
-	#define GPS_GPIO_RESET		LPC_GPIO2
-	#define GPS_PIO_RESET		PIO2_0
-	#define GPS_PIN_RESET		(1 << 0)
-
-	#define SSP_PORT			LPC_SSP0
-	#define SSP_IRQn			SSP0_IRQn
-	#define SSP_PIO_MOSI		PIO0_9
-	#define SSP_PIO_MISO		PIO0_8
-	#define SSP_PIO_SCK			PIO0_6
-
-	#define SSP_GPIO_RADIO_SS	LPC_GPIO0
-	#define SSP_PIO_RADIO_SS	PIO0_7
-	#define SSP_PIN_RADIO_SS	(1 << 7)
-
-	#define RADIO_GPIO_SDN		LPC_GPIO1
-	#define RADIO_PIO_SDN		PIO1_10
-	#define RADIO_PIN_SDN		(1 << 10)
-
-	#define VCXO_GPIO_EN		LPC_GPIO0
-	#define VCXO_PIO_EN			PIO0_3
-	#define VCXO_PIN_EN			(1 << 3)
-
-	#define VCXO_PIO_CTRL		R_PIO0_11
-	#define VCXO_MR_CTRL		MR3
-	#define VCXO_VAL			0x3
-
-	#define RADIO_GPIO_GPIO0	LPC_GPIO3
-	#define RADIO_PIO_GPIO0		PIO3_4
-	#define RADIO_PIN_GPIO0		(1 << 4)
-
-	#define RADIO_GPIO_GPIO1	LPC_GPIO3
-	#define RADIO_PIO_GPIO1		PIO3_5
-	#define RADIO_PIN_GPIO1		(1 << 5)
-
-	#define EXT_GPIO_OUT1		LPC_GPIO1
-	#define EXT_PIO_OUT1		PIO1_4
-	#define EXT_PIN_OUT1		(1 << 4)
-
-	#define EXT_GPIO_OUT2		LPC_GPIO1
-	#define EXT_PIO_OUT2		PIO1_11
-	#define EXT_PIN_OUT2		(1 << 11)
-
-	#define EXT_GPIO_OUT3		LPC_GPIO3
-	#define EXT_PIO_OUT3		PIO3_2
-	#define EXT_PIN_OUT3		(1 << 2)
-
-	#define EXT_GPIO_OUT4		LPC_GPIO1
-	#define EXT_PIO_OUT4		PIO1_5
-	#define EXT_PIN_OUT4		(1 << 5)
-
-	#define I2C_GPIO_PULL_VCC	LPC_GPIO1
-	#define I2C_PIO_PULL_VCC	PIO1_9
-	#define I2C_PIN_PULL_VCC	(1 << 9)
-
-	#define GPS_GPIO_EN			LPC_GPIO1
-	#define GPS_PIO_EN			PIO1_8
-	#define GPS_PIN_EN			(1 << 8)
+	#define GPS_PWR_PIN1		12
+	#define GPS_PWR_PIN2		13
 
 #else
 	#error No/incorrect target selected

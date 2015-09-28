@@ -22,7 +22,7 @@ void ADC_DeInit(void) {
  */
 uint32_t getBatteryMV(void)
 {
-	uint32_t adc = getADC(ADC_AD_BATT);
+	uint32_t adc = getADC(ADC_BATT_PIN);
 	return (adc * REF_MV) >> 10;		// Return battery voltage
 }
 
@@ -32,7 +32,7 @@ uint32_t getBatteryMV(void)
  */
 uint32_t getSolarMV(void)
 {
-	return getADC(ADC_AD_SOLAR) / REF_MV;
+	return getADC(ADC_SOLAR_PIN) / REF_MV;
 }
 
 /**

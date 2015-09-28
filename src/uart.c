@@ -1,146 +1,236 @@
-/*
- * @brief UART API in ROM (USART API ROM) polling example
+/**************************************************************************//**
+ * @file		uart.c
+ * @brief		UART Funktionalität
  *
- * @note
- * Copyright(C) NXP Semiconductors, 2012
- * All rights reserved.
- *
- * @par
- * Software that is described herein is for illustrative purposes only
- * which provides customers with programming information regarding the
- * LPC products.  This software is supplied "AS IS" without any warranties of
- * any kind, and NXP Semiconductors and its licensor disclaim any and
- * all warranties, express or implied, including all implied warranties of
- * merchantability, fitness for a particular purpose and non-infringement of
- * intellectual property rights.  NXP Semiconductors assumes no responsibility
- * or liability for the use of the software, conveys no license or rights under any
- * patent, copyright, mask work right, or any other intellectual property rights in
- * or to any products. NXP Semiconductors reserves the right to make changes
- * in the software without notification. NXP Semiconductors also makes no
- * representation or warranty that such application will be suitable for the
- * specified use without further testing or modification.
+ * @authors		A. Quade
  *
  * @par
- * Permission to use, copy, modify, and distribute this software and its
- * documentation is hereby granted, under NXP Semiconductors' and its
- * licensor's relevant copyrights in the software, without fee, provided that it
- * is used in conjunction with NXP Semiconductors microcontrollers.  This
- * copyright, permission, and disclaimer notice must appear in all copies of
- * this code.
- */
-
-#include "chip.h"
-#include <string.h>
+ * Projekt:		Indoor_Transmitter
+ *
+ * @copyright
+ * navtec GmbH, Berlin, Germany, www.navtec.de			\n
+ * Tel.: +49 (0)3375 / 2465078							\n
+ * FAX : +49 (0)3375 / 2465079							\n
+ *
+ * @since		V1.00
+ *
+  * @page Peripherals
+ * ---
+ * UART
+ * ------
+ * UART RXD: P0.0										\n
+ * UART TXD: P0.4 (P0.7)								\n
+ *
+ *****************************************************************************/
+/** @addtogroup System *******************************************************/
+/*@{*/
+#include "fifo.h"
 #include "uart.h"
+#include "LPC8xx.h"
+#include "core_cm0plus.h"
 
-/*****************************************************************************
- * Private types/enumerations/variables
- ****************************************************************************/
+/****** exportierte Objekte **************************************************/
 
-/* Use a buffer size larger than the expected return value of
-   uart_get_mem_size() for the static UART handle type */
-static uint32_t uartHandleMEM[128];
+/****** lokale Funktionen ****************************************************/
+#define UART_PRESCALE				1					//!< UART Prescaler
+#define UART_FRACTIONAL_M			77					//!< Zähler für fractional divider
+// --> U_PCLK = Fcclk / UART_PRESCALE / (1 + UART_FRACTIONAL_M/255) = 48MHz / 1 / (1 + 77/255) = 36.86746988MHz
+#define UART_BAURDARTE_VAL_115200	19
+#define UART_BAUDRATE_VAL	UART_BAURDARTE_VAL_115200	//!< Wert für USART Baud Rate Generator register (16x Baudrate)
+// --> Baudrate = U_PCLK / (1 + UART_BAUDRATE_VAL) / 16 = 36.86746988MHz / (1 + 19) / 16 = 115211Hz
 
-/* Turn on LED to indicate an error */
-static void errorUART(void)
-{
+static uint32_t crit = 0;
 
+// Es wird UART0 benutzt
+#define UART_CFG					LPC_USART0->CFG
+#define UART_CTRL					LPC_USART0->CTRL
+#define UART_STAT					LPC_USART0->STAT
+#define UART_INTENSET				LPC_USART0->INTENSET
+#define UART_INTENCLR				LPC_USART0->INTENCLR
+#define UART_RXDATA					LPC_USART0->RXDATA
+#define UART_RXDATA_STAT			LPC_USART0->RXDATA_STAT
+#define UART_TXDATA					LPC_USART0->TXDATA
+#define UART_BRG					LPC_USART0->BRG
+#define UART_INTSTAT				LPC_USART0->INTSTAT
+#define UART_IRQ					UART0_IRQn
+#define UART_RESETCTRL_BIT			(1 <<  3)			//!< Bit für UART0 im Peripheral reset control register
+#define UART_CLKCTRL_BIT			(1 << 14)			//!< Bit für UART0 im System clock control register
+#define INT_PRIORITY_UART			10
+
+
+#define UART_CLEAR_IR() 			{	\
+		\
 }
 
-/* Setup UART handle and parameters */
-UART_HANDLE_T* Init_UART(uint32_t baudrate)
-{
-	uint32_t frg_mult;
-
-	Chip_Clock_SetUARTClockDiv(1);	/* divided by 1 */
-
-	/* Connect the U0_TXD_O and U0_RXD_I signals to port pins(P0.14, P0.0) */
-	Chip_SWM_DisableFixedPin(SWM_FIXED_ACMP_I1);
-	Chip_SWM_MovablePinAssign(SWM_U0_TXD_O, 14);
-	Chip_SWM_MovablePinAssign(SWM_U0_RXD_I, 0);
-
-	/* Disable the clock to the Switch Matrix to save power */
-	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
-
-	Chip_UART_Init(LPC_USART0);
-
-	/* 9.6KBPS, 8N1, ASYNC mode, no errors, clock filled in later */
-	UART_CONFIG_T cfg = {
-		0,				/* U_PCLK frequency in Hz */
-		baudrate,		/* Baud Rate in Hz */
-		1,				/* 8N1 */
-		0,				/* Asynchronous Mode */
-		NO_ERR_EN		/* Enable No Errors */
-	};
-
-	/* Perform a sanity check on the storage allocation */
-	if (LPC_UARTD_API->uart_get_mem_size() > sizeof(uartHandleMEM)) {
-		/* Example only: this should never happen and probably isn't needed for
-		   most UART code. */
-		errorUART();
-	}
-
-	/* Setup the UART handle */
-	UART_HANDLE_T *uartHandle;
-	uartHandle = LPC_UARTD_API->uart_setup((uint32_t) LPC_USART0, (uint8_t *) &uartHandleMEM);
-	if (uartHandle == NULL) {
-		errorUART();
-	}
-
-	/* Need to tell UART ROM API function the current UART peripheral clock
-	     speed */
-	cfg.sys_clk_in_hz = Chip_Clock_GetSystemClockRate();
-
-	/* Initialize the UART with the configuration parameters */
-	frg_mult = LPC_UARTD_API->uart_init(uartHandle, &cfg);
-	if (frg_mult) {
-		Chip_SYSCTL_SetUSARTFRGDivider(0xFF);	/* value 0xFF should be always used */
-		Chip_SYSCTL_SetUSARTFRGMultiplier(frg_mult);
-	}
-
-	return uartHandle;
+#define UART_ISIRQ_RXREADY()		((UART_STAT & (1 <<  0)) ? true : false)	// Receiver Ready flag
+#define UART_ISIRQ_TXREADY()		((UART_STAT & (1 <<  2)) ? true : false)	// Transmitter Ready flag
+#define UART_ISIRQ_TXIDLE()			((UART_STAT & (1 <<  3)) ? true : false)	// Transmitter Idle flag
+#define UART_DISABLEIRQ_TXREADY()	{UART_INTENCLR = (1 <<  2);}
+#define UART_DISABLEIRQ_TXIDLE()	{UART_INTENCLR = (1 <<  3);}
+#define UART_START_TX()				{	\
+		UART_INTENSET 			= 0x0D;					/* RxReady + TxReady + TxIdle IRQs aktivieren */	\
+		NVIC_SetPendingIRQ(UART_IRQ);	\
 }
 
-void UART_DeInit(UART_HANDLE_T* uartHandle)
+/****** lokale Variablen *****************************************************/
+static uint8_t UART_Tx_FIFOBuffer[UART_BUFFERSIZE_TX];	//!< Buffer für Transmit-FIFO
+static uint8_t UART_Rx_FIFOBuffer[UART_BUFFERSIZE_RX];	//!< Buffer für Receive-FIFO
+static T_ByteFIFO UART_TxFIFO;							//!< Transmit-FIFO
+static T_ByteFIFO UART_RxFIFO;							//!< Receive-FIFO
+
+/** @addtogroup ISRHandler **************************************************/
+/*@{*/
+/**************************************************************************//**
+ * @brief		Handler für UART Interrupt
+ */
+void	On_UART(void)
 {
+uint32_t Data;
 
-}
+	NVIC_ClearPendingIRQ(UART_IRQ);						// Clear Soft Interrupt
 
-/* Send a string on the UART terminated by a NULL character using
-   polling mode. */
-void putLineUART(UART_HANDLE_T *uartHandle, const uint8_t *send_data)
-{
-	UART_PARAM_T param;
+	// Byte empfangen ? ///////////////////////////////////////////////////////
+	if (UART_ISIRQ_RXREADY())
+	{
+		Data = UART_RXDATA_STAT;
+		// TODO: Framingerror, Parityerror behandeln
+		FIFO_Put(&UART_RxFIFO, (uint8_t)Data);
+	}
 
-	param.buffer = (uint8_t *) send_data;
-	param.size = strlen(send_data);
+	// Sendebereit ? //////////////////////////////////////////////////////////
+	if (UART_ISIRQ_TXREADY())
+	{
+		if (FIFO_Get(&UART_TxFIFO, (uint8_t*)&Data))
+		{
+			UART_TXDATA = (uint8_t)Data;
+		}
+		else
+		{
+			if (UART_ISIRQ_TXIDLE())
+				UART_DISABLEIRQ_TXIDLE();
 
-	/* Polling mode, do not append CR/LF to sent data */
-	param.transfer_mode = TX_MODE_SZERO;
-	param.driver_mode = DRIVER_MODE_POLLING;
-
-	/* Transmit the data */
-	if (LPC_UARTD_API->uart_put_line(uartHandle, &param)) {
-		errorUART();
+			UART_DISABLEIRQ_TXREADY();
+		}
 	}
 }
+/*@}*/ /* end of group ISRHandler */
 
-/* Receive a string on the UART terminated by a LF character using
-   polling mode. */
-void getLineUART(UART_HANDLE_T *uartHandle, uint8_t *receive_buffer, uint32_t length)
+/**************************************************************************//**
+* @brief		diverse Initialisierungen
+*
+* @return      !=0 Alles OK
+*/
+bool	UART_Init(void)
 {
-	UART_PARAM_T param;
+bool result = true;										// Optimist
 
-	param.buffer = (uint8_t *) receive_buffer;
-	param.size = length;
 
-	/* Receive data up to the CR/LF character in polling mode. Will
-	   truncate at length if too long.	*/
-	param.transfer_mode = RX_MODE_CRLF_RECVD;
-	param.driver_mode = DRIVER_MODE_POLLING;
+	if (!FIFO_Init(&UART_TxFIFO, sizeof(UART_Tx_FIFOBuffer), UART_Tx_FIFOBuffer))
+		result = false;
 
-	/* Receive the data */
-	if (LPC_UARTD_API->uart_get_line(uartHandle, &param)) {
-		errorUART();
-	}
+	if (!FIFO_Init(&UART_RxFIFO, sizeof(UART_Rx_FIFOBuffer), UART_Rx_FIFOBuffer))
+		result = false;
+
+	LPC_SYSCON->SYSAHBCLKCTRL	|= (1 <<  7);		/* Enables clock for SWM */
+	LPC_SWM->PINENABLE0 |= (1 <<  0);				/* ACMP_I1	on pin PIO0_0 disabled */
+	/*LPC_SWM->PINENABLE0 |= (1 << 24);*/				/* ADC_11	on pin PIO0_4 disabled */
+	LPC_SWM->PINENABLE0 |= (1 << 13);				/* ADC_0	on pin PIO0_7 disabled */
+	/*LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFFFF00) | ( 4 <<  0);*/	/* P0_4 ist U0_TXD */
+	LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFFFF00) | ( 7 <<  0);	/* P0_7 ist U0_TXD */
+	LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFF00FF) | ( 0 <<  8);	/* P0_0 ist U0_RXD */
+	LPC_SYSCON->SYSAHBCLKCTRL	&=~(1 <<  7);		/* Disables clock for SWM */
+
+	LPC_SYSCON->SYSAHBCLKCTRL |= UART_CLKCTRL_BIT;	/* Enables clock for UART */
+	LPC_SYSCON->PRESETCTRL	|= UART_RESETCTRL_BIT;	/* UART nicht mehr RESET */
+	NVIC_DisableIRQ(UART_IRQ);						/* IRQ disable und löschen */
+	NVIC_ClearPendingIRQ(UART_IRQ);
+	UART_INTENSET 			= 0x00;					/* IRQs deaktivieren */
+
+	LPC_SYSCON->UARTCLKDIV	= UART_PRESCALE;		/* UART Prescaler */
+	LPC_SYSCON->UARTFRGMULT	= UART_FRACTIONAL_M;	/* Zähler für fractional divider */
+	LPC_SYSCON->UARTFRGDIV	= 0xFF;					/* Nenner für fractional divider, muss fest auf 255 */
+	UART_BRG				= UART_BAUDRATE_VAL;	/* Baudrate einstellen */
+													/*  3             2                  1                  */
+													/* 10987654 3 2 1 0 9 8 76 5 4 3 2 1 0 9 87 6 54 32 1 0 */
+	UART_CFG				= 0x00000004;			/* 00000000 0 0 0 0 0 0 00 0 0 0 0 0 0 0 00 0 00 01 0 0 : UART 8N1, disabled */
+	UART_CTRL				= 0;					/* Nix */
+	NVIC_SetPriority(UART_IRQ, INT_PRIORITY_UART);	/* Interrupt einrichten */
+	NVIC_EnableIRQ(UART_IRQ);
+	UART_INTENSET 			= 0x01;					/* RxReady IRQ aktivieren */
+	UART_CFG				|= 1;					/* Enable */
+
+	return result;
 }
+/**************************************************************************//**
+ * @brief		Legt Datenbyte in FIFO, löst Senden aus
+ *
+ * @param[in]	Data	- Datenbyte
+ *
+ * @return      true 	- OK, false - FIFO voll
+ */
+bool	UART_TxByte(uint8_t Data)
+{
+bool result;
+
+	EnterCritical();
+		result = FIFO_Put(&UART_TxFIFO, Data);
+		UART_START_TX();
+	ExitCritical();
+
+	return result;
+}
+/**************************************************************************//**
+ * @brief		Holt ein evtl. vorhandenes Zeichen
+ *
+ * @param[out]	pData
+ *
+ * @return      false - kein Zeichen vorhanden
+ */
+bool	UART_RxByte(uint8_t* pData)
+{
+bool result = false;
+
+	if (FIFO_Available(&UART_RxFIFO))
+	{
+		EnterCritical();
+			result = FIFO_Get(&UART_RxFIFO, pData);
+		ExitCritical();
+	}
+
+	return result;
+}
+/**************************************************************************//**
+ * @brief		Schreibt String in FIFO, löst Senden aus
+ * @param[in]	pData	- String
+ * @param		Len		- max. Anzahl auszugebener Zeichen
+ * @return      Anzahl tatsächlich geschriebener Zeichen
+ */
+uint32_t	UART_TxString(const uint8_t* pData, uint32_t Len)
+{
+bool result = true;
+uint32_t Count = Len;
+const uint8_t	*pB = pData;
+
+	EnterCritical();
+		while (	result && (*pB) && (Len))
+		{
+			if ((result = FIFO_Put(&UART_TxFIFO, *pB++)))
+				Len--;
+		}
+	ExitCritical();
+
+	UART_START_TX();
+
+	return Count - Len;
+}
+
+void EnterCritical(void) {
+	while(crit);
+	crit++;
+}
+
+void ExitCritical(void) {
+	crit--;
+}
+
+/*@}*/ /* end of group System */

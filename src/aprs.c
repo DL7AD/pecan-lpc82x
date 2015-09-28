@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include "base64.h"
 #include "time.h"
+#include "small_printf_code.h"
 
 #define METER_TO_FEET(m) (((m)*26876) / 8192)
 
@@ -192,10 +193,6 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 	if(gpsstate != GPS_LOCK) {
 		if(loss_of_gps_counter >= 5) { // GPS lost 3 times (6min if cycle = 2min) TODO: This is actually not a task of APRS encoding
 			loss_of_gps_counter = 0;
-
-			GPS_PowerOff();	// Reset UART interface
-			gps_reset();	// Reset GPS
-			GPS_Init();		// Reinit GPS
 		}
 		loss_of_gps_counter++;
 		ax25_send_string(" GPS loss ");

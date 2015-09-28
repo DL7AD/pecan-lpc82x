@@ -25,13 +25,7 @@
 #include <stdlib.h>
 #include "config.h"
 #include "time.h"
-
-#define GPS_EN_SET(Select) { \
-	if (Select) \
-		GPS_GPIO_EN->DATA |= GPS_PIN_EN; \
-	else \
-		GPS_GPIO_EN->DATA &= ~GPS_PIN_EN; \
-}
+#include "chip.h"
 
 const uint8_t UBX_SETGLLOFF[] = {
 	0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0xF0, 0x01, 0x00, 0x00,
@@ -194,7 +188,6 @@ gps_t newFix;
 gps_t lastFix;
 uint64_t time_lastRMCpacket;
 uint64_t time_lastGGApacket;
-static UART_HANDLE_T* uartHandle;
 
 // Module variables
 static sentence_t sentence_type = SENTENCE_UNK;
@@ -334,23 +327,16 @@ void parse_altitude(const char *token)
 // Exported functions
 
 void GPS_Init() {
-	// Configure pins
-	//LPC_IOCON->GPS_PIO_RESET = 0x30;		// GPS reset pin
-	//GPS_GPIO_RESET->DIR |= GPS_PIN_RESET;	// Set output
-
-	//LPC_IOCON->GPS_PIO_EN = 0x30;			// GPS enable pin
-	//GPS_GPIO_EN->DIR |= GPS_PIN_EN;			// Set output
-
-	UART_Init(GPS_BAUDRATE);				// Init UART
+	UART_Init();							// Init UART
 	GPS_PowerOn();							// Init GPS
 }
 
 void GPS_hibernate_uart(void) {
-	UART_DeInit(uartHandle);				// Stop UART
+	//UART_DeInit();							// Stop UART
 }
 
 void GPS_wake_uart(void) {
-	UART_Init(GPS_BAUDRATE);				// Init UART
+	UART_Init();							// Init UART
 }
 
 void GPS_PowerOff(void) {
@@ -358,7 +344,7 @@ void GPS_PowerOff(void) {
 	gps_hw_switch(false);					// Power down GPS
 	#endif
 
-	UART_DeInit(uartHandle);				// Power off UART
+	//UART_DeInit();							// Power off UART
 	isOn = false;
 }
 
@@ -394,22 +380,22 @@ void GPS_PowerOn(void) {
 
 void gps_set_nmeaCompatibility()
 {
-	putLineUART(uartHandle, UBX_SET_NMEA);
+	UART_TxString(UBX_SET_NMEA, sizeof(UBX_SET_NMEA));
 }
 
 void gps_set_gps_only()
 {
-	putLineUART(uartHandle, UBX_GPS_ONLY);
+	UART_TxString(UBX_GPS_ONLY, sizeof(UBX_GPS_ONLY));
 }
 
 void gps_set_airborne_model()
 {
-	putLineUART(uartHandle, UBX_AIRBORNE_MODEL);
+	UART_TxString(UBX_AIRBORNE_MODEL, sizeof(UBX_AIRBORNE_MODEL));
 }
 
 void gps_configure_power_save()
 {
-	putLineUART(uartHandle, UBX_CONFIGURE_POWERSAVE);
+	UART_TxString(UBX_CONFIGURE_POWERSAVE, sizeof(UBX_CONFIGURE_POWERSAVE));
 }
 
 /**
@@ -419,19 +405,19 @@ void gps_configure_power_save()
  */
 void gps_activate_power_save()
 {
-	putLineUART(uartHandle, UBX_SWITCH_POWERSAVE_ON);
+	UART_TxString(UBX_SWITCH_POWERSAVE_ON, sizeof(UBX_SWITCH_POWERSAVE_ON));
 }
 
 void gps_disable_power_save()
 {
-	putLineUART(uartHandle, UBX_SWITCH_POWERSAVE_OFF);
+	UART_TxString(UBX_SWITCH_POWERSAVE_OFF, sizeof(UBX_SWITCH_POWERSAVE_OFF));
 }
 
 void gps_configureActiveNMEASentences() {
-	putLineUART(uartHandle, UBX_SETGLLOFF);
-	putLineUART(uartHandle, UBX_SETGSAOFF);
-	putLineUART(uartHandle, UBX_SETGSVOFF);
-	putLineUART(uartHandle, UBX_SETVTGOFF);
+	UART_TxString(UBX_SETGLLOFF, sizeof(UBX_SETGLLOFF));
+	UART_TxString(UBX_SETGSAOFF, sizeof(UBX_SETGSAOFF));
+	UART_TxString(UBX_SETGSVOFF, sizeof(UBX_SETGSVOFF));
+	UART_TxString(UBX_SETVTGOFF, sizeof(UBX_SETVTGOFF));
 }
 
 /**
@@ -596,9 +582,10 @@ void gpsSetTime2lock(uint32_t ms)
  * @param pos true or false wether gps should be switch on or off
  */
 void gps_hw_switch(bool pos) {
-	#ifdef USE_GPS_HW_SW
-	GPS_EN_SET(!pos);
-	#endif
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, GPS_PWR_PIN1); // Configure both power switch pins
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, GPS_PWR_PIN2);
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GPS_PWR_PIN1, pos); // Switch GPS on
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GPS_PWR_PIN2, pos);
 }
 
 bool gpsIsOn(void) {

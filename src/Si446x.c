@@ -9,35 +9,25 @@
 #include "chip.h"
 #include "spi.h"
 #include "time.h"
-#include "chip.h"
 
-#define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_PIN_SDN, Select)
-#define RADIO_SDN_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_PIN_SDN, Select)
+#define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN, Select)
+#define RADIO_SDN_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select)
 
 /**
- * Initializes Si406x transceiver chip. Adjustes the frequency which is shifted by variable
+ * Initializes Si446x transceiver chip. Adjustes the frequency which is shifted by variable
  * oscillator voltage.
  * @param mv Oscillator voltage in mv
  */
-bool Si406x_Init(void) {
+bool Si446x_Init(void) {
 	// Initialize SPI
-	SSP_Init();
+	SPI_Init();
 
 	// Configure GPIO pins
-	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, RADIO_PIN_SDN);
-	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, RADIO_PIN_GPIO0);
-
-	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_PIN_GPIO0, true);
-
-	// Initialize GPIO pins
-	RADIO_SDN_SET(true);								// Power down transmitter
-	RF_GPIO_SET(true);									// Shift high
-
-	delay(10);											// Delay 10ms (for TCXO startup)
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, RADIO_SDN_PIN);
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN);
 
 	// Power up transmitter
 	RADIO_SDN_SET(false);								// Radio SDN low (power up transmitter)
-
 	delay(1);											// Wait for transmitter to power up
 
 	// Power up (transmits oscillator type)
@@ -45,11 +35,11 @@ bool Si406x_Init(void) {
 	uint8_t x2 = (OSC_FREQ >> 16) & 0x0FF;
 	uint8_t x1 = (OSC_FREQ >>  8) & 0x0FF;
 	uint8_t x0 = (OSC_FREQ >>  0) & 0x0FF;
-	uint8_t init_command[] = {0x02, 0x01, 0x01, x3, x2, x1, x0};
-	SendCmdReceiveAnswerSetDelay(init_command, 7, NULL, 7, 100);
+	uint16_t init_command[] = {0x02, 0x01, 0x01, x3, x2, x1, x0};
+	Si446x_write(init_command, 7);
 
 	// Set transmitter GPIOs
-	uint8_t gpio_pin_cfg_command[] = {
+	uint16_t gpio_pin_cfg_command[] = {
 		0x13,	// Command type = GPIO settings
 		0x44,	// GPIO0        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
 		0x00,	// GPIO1        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
@@ -59,7 +49,7 @@ bool Si406x_Init(void) {
 		0x00,	// SDO
 		0x00	// GEN_CONFIG
 	};
-	SendCmdReceiveAnswer(gpio_pin_cfg_command, 8, NULL, 8);
+	Si446x_write(gpio_pin_cfg_command, 8);
 
 	// Set misc configuration
 	setModem();
@@ -67,54 +57,46 @@ bool Si406x_Init(void) {
 	return true;
 }
 
-void SendCmdReceiveAnswer(uint8_t* txData, uint32_t byteCountTx, uint8_t* rxData, uint32_t byteCountRx) {
-	SendCmdReceiveAnswerSetDelay(txData, byteCountTx, rxData, byteCountRx, 10);
-}
+void Si446x_write(uint16_t* txData, uint32_t len) {
+	// Transmit data by SPI
+	SPI_Transmit(txData, NULL, len);
 
-void SendCmdReceiveAnswerSetDelay(uint8_t* txData, uint32_t byteCountTx, uint8_t* rxData, uint32_t byteCountRx, uint32_t delays) {
-	// Kommunikation vorbereiten
-	//SSPStruct.pTxData = txData;
-	//SSPStruct.pRxData = rxData;
-	//SSPStruct.TxCount = byteCountTx;
-	//SSPStruct.RxCount = byteCountRx;
-
-	// Kommunikation durchführen
-	//SSP_START_IRQ();
-
-	// Warten auf beenden der Kommunikation
-	//SSP_WaitTransferComplete();
-
-	// Warten auf Antwort
-	uint8_t rx_answer[] = {0x00, 0x00};
-
+	// Reqest ACK by Si446x
+	uint16_t rx_answer[] = {0x00};
 	while(rx_answer[0] != 0xFF) {
-		uint8_t rx_ready[] = {0x44, 0x00};
 
+		// Request ACK by Si446x
+		uint16_t rx_ready[] = {0x44};
+		SPI_Transmit(rx_ready, rx_answer, 1);
 
-		//SSPStruct.pTxData = rx_ready;
-		//SSPStruct.pRxData = rx_answer;
-		//SSPStruct.TxCount = 2;
-		//SSPStruct.RxCount = 2;
-
-		// Kommunikation durchführen
-		//SSP_START_IRQ();
-
-		// Warten auf beenden der Kommunikation
-		//SSP_WaitTransferComplete();
-
-		if(rx_answer[1] != 0xFF) {
+		if(rx_answer[0] != 0xFF) // Si not finished, wait for it
 			delay(1);
-		}
 	}
-
-
-	// Zusaetzliches delay
-	if(delays)
-		delay(delays);
 }
 
-void sendFrequencyToSi406x(uint32_t freq) {
-	// Set the output divider according to recommended ranges given in Si406x datasheet
+/**
+ * Read register from Si446x. First Register CTS is included.
+ */
+void Si446x_read(uint16_t* txData, uint32_t txLen, uint16_t* rxData, uint32_t rxLen) {
+	// Transmit data by SPI
+	SPI_Transmit(txData, NULL, txLen);
+
+	// Reqest ACK by Si446x
+	uint16_t rx_answer[] = {0x00};
+	while(rx_answer[0] != 0xFF) {
+
+		// Request ACK by Si446x
+		uint16_t rx_ready[rxLen];
+		rx_ready[0] = 0x44;
+		SPI_Transmit(rx_ready, rxData, rxLen);
+
+		if(rxData[0] != 0xFF) // Si not finished, wait for it
+			delay(1);
+	}
+}
+
+void sendFrequencyToSi446x(uint32_t freq) {
+	// Set the output divider according to recommended ranges given in Si446x datasheet
 	uint32_t band = 0;
 	uint32_t outdiv;
 	if(freq < 705000000UL) {outdiv = 6;  band = 1;};
@@ -125,8 +107,8 @@ void sendFrequencyToSi406x(uint32_t freq) {
 
 	// Set the band parameter
 	uint32_t sy_sel = 8;
-	uint8_t set_band_property_command[] = {0x11, 0x20, 0x01, 0x51, (band + sy_sel)};
-	SendCmdReceiveAnswerSetDelay(set_band_property_command, 5, NULL, 5, 100);
+	uint16_t set_band_property_command[] = {0x11, 0x20, 0x01, 0x51, (band + sy_sel)};
+	Si446x_write(set_band_property_command, 5);
 
 	// Set the PLL parameters
 	uint32_t f_pfd = 2 * OSC_FREQ / outdiv;
@@ -140,26 +122,26 @@ void sendFrequencyToSi406x(uint32_t freq) {
 	uint32_t m0 = (m - m2 * 0x10000 - (m1 << 8));
 
 	// Transmit frequency to chip
-	uint8_t set_frequency_property_command[] = {0x11, 0x40, 0x04, 0x00, n, m2, m1, m0};
-	SendCmdReceiveAnswerSetDelay(set_frequency_property_command, 8, NULL, 8, 100);
+	uint16_t set_frequency_property_command[] = {0x11, 0x40, 0x04, 0x00, n, m2, m1, m0};
+	Si446x_write(set_frequency_property_command, 8);
 
 	uint32_t x = ((((uint32_t)1 << 19) * outdiv * 1300.0)/(2*OSC_FREQ))*2;
 	uint8_t x2 = (x >> 16) & 0xFF;
 	uint8_t x1 = (x >>  8) & 0xFF;
 	uint8_t x0 = (x >>  0) & 0xFF;
-	uint8_t set_deviation[] = {0x11, 0x20, 0x03, 0x0a, x2, x1, x0};
-	SendCmdReceiveAnswerSetDelay(set_deviation, 7, NULL, 7, 100);
+	uint16_t set_deviation[] = {0x11, 0x20, 0x03, 0x0a, x2, x1, x0};
+	Si446x_write(set_deviation, 7);
 }
 
 void setModem() {
 
 	// Disable preamble
-	uint8_t disable_preamble[] = {0x11, 0x10, 0x01, 0x00, 0x00};
-	SendCmdReceiveAnswer(disable_preamble, 5, NULL, 5);
+	uint16_t disable_preamble[] = {0x11, 0x10, 0x01, 0x00, 0x00};
+	Si446x_write(disable_preamble, 5);
 
 	// Do not transmit sync word
-	uint8_t no_sync_word[] = {0x11, 0x11, 0x01, 0x11, (0x01 << 7)};
-	SendCmdReceiveAnswer(no_sync_word, 5, NULL, 5);
+	uint16_t no_sync_word[] = {0x11, 0x11, 0x01, 0x11, (0x01 << 7)};
+	Si446x_write(no_sync_word, 5);
 
 	// Setup the NCO modulo and oversampling mode
 	uint32_t s = OSC_FREQ / 10;
@@ -167,47 +149,45 @@ void setModem() {
 	uint8_t f2 = (s >> 16) & 0xFF;
 	uint8_t f1 = (s >>  8) & 0xFF;
 	uint8_t f0 = (s >>  0) & 0xFF;
-	uint8_t setup_oversampling[] = {0x11, 0x20, 0x04, 0x06, f3, f2, f1, f0};
-	SendCmdReceiveAnswer(setup_oversampling, 8, NULL, 8);
+	uint16_t setup_oversampling[] = {0x11, 0x20, 0x04, 0x06, f3, f2, f1, f0};
+	Si446x_write(setup_oversampling, 8);
 
 	// setup the NCO data rate for APRS
-	uint8_t setup_data_rate[] = {0x11, 0x20, 0x03, 0x03, 0x00, 0x11, 0x30};
-	SendCmdReceiveAnswer(setup_data_rate, 7, NULL, 7);
+	uint16_t setup_data_rate[] = {0x11, 0x20, 0x03, 0x03, 0x00, 0x11, 0x30};
+	Si446x_write(setup_data_rate, 7);
 
 	// use 2GFSK from async GPIO0
-	uint8_t use_2gfsk[] = {0x11, 0x20, 0x01, 0x00, 0x0B};
-	SendCmdReceiveAnswer(use_2gfsk, 5, NULL, 5);
+	uint16_t use_2gfsk[] = {0x11, 0x20, 0x01, 0x00, 0x0B};
+	Si446x_write(use_2gfsk, 5);
 
 	// Set AFSK filter
 	uint8_t coeff[] = {0x81, 0x9f, 0xc4, 0xee, 0x18, 0x3e, 0x5c, 0x70, 0x76};
 	uint8_t i;
 	for(i=0; i<sizeof(coeff); i++) {
-		uint8_t msg[] = {0x11, 0x20, 0x01, 0x17-i, coeff[i]};
-		SendCmdReceiveAnswer(msg, 5, NULL, 5);
+		uint16_t msg[] = {0x11, 0x20, 0x01, 0x17-i, coeff[i]};
+		Si446x_write(msg, 5);
 	}
 }
 
 void setPowerLevel(uint8_t level) {
 	// Set the Power
-	uint8_t set_pa_pwr_lvl_property_command[] = {0x11, 0x22, 0x01, 0x01, level};
-
-	// send parameters
-	SendCmdReceiveAnswer(set_pa_pwr_lvl_property_command, 5, NULL, 5);
+	uint16_t set_pa_pwr_lvl_property_command[] = {0x11, 0x22, 0x01, 0x01, level};
+	Si446x_write(set_pa_pwr_lvl_property_command, 5);
 }
 
 void startTx(void) {
-	uint8_t change_state_command[] = {0x34, 0x07};
-	SendCmdReceiveAnswerSetDelay(change_state_command, 2, NULL, 2, 100);
+	uint16_t change_state_command[] = {0x34, 0x07};
+	Si446x_write(change_state_command, 2);
 }
 
 void stopTx(void) {
-	uint8_t change_state_command[] = {0x34, 0x03};
-	SendCmdReceiveAnswerSetDelay(change_state_command, 2, NULL, 2, 100);
+	uint16_t change_state_command[] = {0x34, 0x03};
+	Si446x_write(change_state_command, 2);
 }
 
 void radioShutdown(void) {
 	RADIO_SDN_SET(true);	// Power down chip
-	SSP_DeInit();			// Power down SPI
+	SPI_DeInit();			// Power down SPI
 }
 
 /**
@@ -222,54 +202,20 @@ void radioTune(uint32_t frequency, uint8_t level) {
 	if(frequency < 119000000UL || frequency > 1050000000UL)
 		frequency = 145300000UL;
 
-	sendFrequencyToSi406x(frequency);	// Frequency
+	sendFrequencyToSi446x(frequency);	// Frequency
 	setPowerLevel(level);				// Power level
 
 	startTx();
 }
 
-inline void setGPIO(bool s) {
+void setGPIO(bool s) {
 	RF_GPIO_SET(s);
 }
 
-int8_t Si406x_getTemperature(void) {
-	uint8_t txData[7] = {0x14, 0x10};
-	uint8_t rxData[7];
-
-	// Kommunikation vorbereiten
-	//SSPStruct.pTxData = txData;
-	//SSPStruct.pRxData = rxData;
-	//SSPStruct.TxCount = 2;
-	//SSPStruct.RxCount = 2;
-
-	// Kommunikation durchführen
-	//SSP_START_IRQ();
-
-	// Warten auf beenden der Kommunikation
-	//SSP_WaitTransferComplete();
-
-	delay(10);
-
-	uint8_t rx_answer[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	uint8_t rx_ready[] = {0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	while(rx_answer[0] != 0xFF) {
-
-		//SSPStruct.pTxData = rx_ready;
-		//SSPStruct.pRxData = rx_answer;
-		//SSPStruct.TxCount = 8;
-		//SSPStruct.RxCount = 8;
-
-		// Kommunikation durchführen
-		//SSP_START_IRQ();
-
-		// Warten auf beenden der Kommunikation
-		//SSP_WaitTransferComplete();
-
-		if(rx_answer[1] != 0xFF) {
-			delay(1);
-		}
-	}
-
-	uint16_t adc = rx_answer[7] | ((rx_answer[6] & 0x7) << 8);
+int8_t Si446x_getTemperature(void) {
+	uint16_t txData[2] = {0x14, 0x10};
+	uint16_t rxData[7];
+	Si446x_read(txData, sizeof(txData), rxData, sizeof(rxData));
+	uint16_t adc = rxData[6] | ((rxData[5] & 0x7) << 8);
 	return (899*adc)/4096 - 293;
 }

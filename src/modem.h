@@ -28,7 +28,6 @@ extern uint16_t modem_packet_size;              // in bits
 void Modem_Init(void);
 void modem_start(void);
 void modem_flush_frame(void);
-bool modem_busy(void);
 void On_Sample_Handler(void);
 void On_Tone_Handler(void);
 

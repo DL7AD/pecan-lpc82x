@@ -1,11 +1,36 @@
-#ifndef __UART_H__
-#define __UART_H__
+/**************************************************************************//**
+ * @file		uart.h
+ * @brief		UART Funktionalität
+ *
+ * @authors		A. Quade
+ *
+ * @par
+ * Projekt:		Indoor_Transmitter
+ *
+ * @copyright
+ * navtec GmbH, Berlin, Germany, www.navtec.de			\n
+ * Tel.: +49 (0)3375 / 2465078							\n
+ * FAX : +49 (0)3375 / 2465079							\n
+ *
+ * @since		V1.00
+ *****************************************************************************/
+/** @addtogroup System *******************************************************/
+/*@{*/
+#ifndef __UART__H__
+#define __UART__H__
 
-#include <chip.h>
+#include "types.h"
 
-UART_HANDLE_T* UART_Init(uint32_t baudrate);
-void UART_DeInit(UART_HANDLE_T* uartHandle);
-void putLineUART(UART_HANDLE_T *uartHandle, const uint8_t *send_data);
-void getLineUART(UART_HANDLE_T *uartHandle, uint8_t *receive_buffer, uint32_t length);
+#define UART_BUFFERSIZE_TX			512					//!< Buffer für Transmit-FIFO
+#define UART_BUFFERSIZE_RX			512					//!< Buffer für Receive-FIFO
 
-#endif
+bool	UART_Init(void);
+
+bool UART_TxByte(uint8_t Data);
+bool UART_RxByte(uint8_t* pData);
+uint32_t UART_TxString(const uint8_t* pData, uint32_t Len);
+void EnterCritical(void);
+void ExitCritical(void);
+
+/*@}*/ /* end of group System */
+#endif /* __UART__H__ */
