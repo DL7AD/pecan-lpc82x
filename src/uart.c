@@ -28,6 +28,7 @@
 #include "uart.h"
 #include "LPC8xx.h"
 #include "core_cm0plus.h"
+#include "config.h"
 
 /****** exportierte Objekte **************************************************/
 
@@ -138,8 +139,8 @@ bool result = true;										// Optimist
 	/*LPC_SWM->PINENABLE0 |= (1 << 24);*/				/* ADC_11	on pin PIO0_4 disabled */
 	LPC_SWM->PINENABLE0 |= (1 << 13);				/* ADC_0	on pin PIO0_7 disabled */
 	/*LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFFFF00) | ( 4 <<  0);*/	/* P0_4 ist U0_TXD */
-	LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFFFF00) | ( 7 <<  0);	/* P0_7 ist U0_TXD */
-	LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFF00FF) | ( 0 <<  8);	/* P0_0 ist U0_RXD */
+	LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFFFF00) | ( UART_TXD_PIN <<  0);	/* Pinbelegung fuer U0_TXD */
+	LPC_SWM->PINASSIGN0	= (LPC_SWM->PINASSIGN0 & 0xFFFF00FF) | ( UART_RXD_PIN <<  8);	/* Pinbelegung fuer U0_RXD */
 	LPC_SYSCON->SYSAHBCLKCTRL	&=~(1 <<  7);		/* Disables clock for SWM */
 
 	LPC_SYSCON->SYSAHBCLKCTRL |= UART_CLKCTRL_BIT;	/* Enables clock for UART */
