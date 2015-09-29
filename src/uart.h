@@ -19,8 +19,6 @@
 #ifndef __UART__H__
 #define __UART__H__
 
-#include "types.h"
-
 #define UART_BUFFERSIZE_TX			512					//!< Buffer für Transmit-FIFO
 #define UART_BUFFERSIZE_RX			512					//!< Buffer für Receive-FIFO
 

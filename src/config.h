@@ -19,6 +19,7 @@
 #define __CONFIG_H__
 
 #include "defines.h"
+#include "chip.h"
 
 // APRS Source Callsign
 #define S_CALLSIGN			"DL7AD"
@@ -49,7 +50,7 @@
 //							127 ~ 50mW
 //							20  ~ 5mW
 //							7   ~ 1mW
-// Radio power:				Radio power (for Si4060 @ VCC=2500mV)
+//							Radio power (for Si4060 @ VCC=2500mV)
 //							Range 1-127
 //							127 ~ 10mW
 //							20  ~ 1mW
@@ -79,7 +80,7 @@
 //							the accumulator healthy
 // 2. LiPo					LiPo GPS will be kept off below 3000mV, no transmission is made below 2500mV to keep the
 //							accumulator healthy
-#define BATTERY_TYPE		PRIMARY
+#define BATTERY_TYPE		LiPo
 
 // Solar feed available
 #define SOLAR_AVAIL
@@ -110,9 +111,15 @@
 /* =============================================== Misc definitions ================================================ */
 /* ========================================== Please don't touch anything ========================================== */
 
-#if BATTERY_TYPE == SECONDARY
-	#define VOLTAGE_NOGPS		3000			// Don't switch on GPS below this voltage (Telemetry transmission only)
-	#define VOLTAGE_NOTRANSMIT	2700			// Don't transmit below this voltage
+#if BATTERY_TYPE == LiPo
+	#define VOLTAGE_NOGPS		3000			// Don't switch on GPS below this voltage
+	#define VOLTAGE_NOTRANSMIT	2500			// Don't transmit below this voltage
+	#define VOLTAGE_GPS_MAXDROP 100				// Max. Battery drop voltage until GPS is switched off while acquisition
+												// Example: VOLTAGE_NOGPS = 2700 & VOLTAGE_GPS_MAXDROP = 100 => GPS will be switched
+												// off at 2600mV, GPS will not be switched on if battery voltage already below 2700mV
+#elif BATTERY_TYPE == LiFePo4
+	#define VOLTAGE_NOGPS		2700			// Don't switch on GPS below this voltage
+	#define VOLTAGE_NOTRANSMIT	2500			// Don't transmit below this voltage
 	#define VOLTAGE_GPS_MAXDROP 100				// Max. Battery drop voltage until GPS is switched off while acquisition
 												// Example: VOLTAGE_NOGPS = 2700 & VOLTAGE_GPS_MAXDROP = 100 => GPS will be switched
 												// off at 2600mV, GPS will not be switched on if battery voltage already below 2700mV
