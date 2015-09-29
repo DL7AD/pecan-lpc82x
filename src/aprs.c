@@ -211,6 +211,7 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 /**
  * Transmit APRS log packet
  */
+#if LOG_SIZE
 void transmit_log(track_t *trackPoint)
 {
 	// Encode telemetry header
@@ -232,3 +233,4 @@ void transmit_log(track_t *trackPoint)
 	// Transmit
 	ax25_flush_frame();
 }
+#endif

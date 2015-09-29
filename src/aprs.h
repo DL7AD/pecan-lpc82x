@@ -20,10 +20,12 @@
 
 #include "log.h"
 #include "types.h"
+#include "config.h"
 
 void transmit_telemetry(track_t *trackPoint);
 void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course, uint16_t speed);
+#if LOG_SIZE
 void transmit_log(track_t *trackPoint);
-void display_configuration(void);
+#endif
 
 #endif

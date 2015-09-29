@@ -2,18 +2,25 @@
 #include "adc.h"
 
 void ADC_Init(void) {
-	//LPC_SYSCON->PDRUNCFG		&= ~(1<<4);		// Power up ADC
-	//LPC_SYSCON->SYSAHBCLKCTRL	|= (1<<13);		// Enable ADC clock
+	// Configure pins
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
+	Chip_SWM_EnableFixedPin(ADC_BATT_PIN);
+	Chip_SWM_EnableFixedPin(ADC_SOLAR_PIN);
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);
 
-	//LPC_IOCON->ADC_PIO_BATT		 = ADC_AD_BATT < AD5 ? 0x02 : 0x01;
-	//LPC_IOCON->ADC_PIO_SOLAR	 = ADC_AD_SOLAR < AD5 ? 0x02 : 0x01;
+	// Enable ADC clock
+	Chip_ADC_Init(LPC_ADC, 0);
 
-	//LPC_ADC->CR = 0x0B01; // Configure ADC block to max. accuracy
+	// Start Calibration
+	Chip_ADC_StartCalibration(LPC_ADC);
+	while(!Chip_ADC_IsCalibrationDone(LPC_ADC));
+
+	// Configure clock
+	Chip_ADC_SetClockRate(LPC_ADC, 1000); // Clock 1kHz
 }
 
 void ADC_DeInit(void) {
-	//LPC_SYSCON->PDRUNCFG        |= 1<<4;		// Power down ADC
-	//LPC_SYSCON->SYSAHBCLKCTRL   &= ~(1<<13);	// Disable ADC clock
+	Chip_ADC_DeInit(LPC_ADC); // Power down ADC
 }
 
 /**
@@ -22,8 +29,7 @@ void ADC_DeInit(void) {
  */
 uint32_t getBatteryMV(void)
 {
-	uint32_t adc = getADC(ADC_BATT_PIN);
-	return (adc * REF_MV) >> 10;		// Return battery voltage
+	return (getADC(ADC_BATT_PIN) * REF_MV) >> 12;		// Return battery voltage
 }
 
 /**
@@ -32,18 +38,20 @@ uint32_t getBatteryMV(void)
  */
 uint32_t getSolarMV(void)
 {
-	return getADC(ADC_SOLAR_PIN) / REF_MV;
+	return (getADC(ADC_SOLAR_PIN) * REF_MV) >> 12;		// Return solar voltage
 }
 
 /**
- * Measures voltage at specific ADx and returns 10bit value (2^10-1 equals LPC reference voltage)
+ * Measures voltage at specific ADx and returns 12bit value (2^12-1 equals LPC reference voltage)
  * @param ad ADx pin
  */
 uint16_t getADC(uint8_t ad)
 {
-	//LPC_ADC->CR  = (LPC_ADC->CR & 0xFFF0) | (1 << ad);	// Configure active adc port
-	//LPC_ADC->CR |= (1 << 24);							// Start conversion
-	//while((LPC_ADC->DR[ad] < 0x7FFFFFFF));				// Wait for done bit to be toggled
-	//return ((LPC_ADC->DR[ad] & 0xFFC0) >> 6);			// Cut out 10bit value
-	return 0;
+	// Start ADC conversion
+	Chip_ADC_SetupSequencer(LPC_ADC, ADC_SEQA_IDX, ADC_SEQ_CTRL_CHANSEL(ad) | ADC_SEQ_CTRL_MODE_EOS);
+	Chip_ADC_EnableSequencer(LPC_ADC, ADC_SEQA_IDX);
+	Chip_ADC_StartBurstSequencer(LPC_ADC, ADC_SEQA_IDX);
+	uint32_t seq_gdat = Chip_ADC_GetSequencerDataReg(LPC_ADC, ADC_SEQ_CTRL_CHANSEL(ad));
+
+	return (LPC_ADC->DR[ad] >> 4) & 0xFFF;			// Cut out 12bit value
 }
