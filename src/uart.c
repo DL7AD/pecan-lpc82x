@@ -35,9 +35,11 @@
 #define UART_PRESCALE				1					//!< UART Prescaler
 #define UART_FRACTIONAL_M			77					//!< Zähler für fractional divider
 // --> U_PCLK = Fcclk / UART_PRESCALE / (1 + UART_FRACTIONAL_M/255) = 48MHz / 1 / (1 + 77/255) = 36.86746988MHz
-#define UART_BAURDARTE_VAL_115200	19
-#define UART_BAUDRATE_VAL	UART_BAURDARTE_VAL_115200	//!< Wert für USART Baud Rate Generator register (16x Baudrate)
-// --> Baudrate = U_PCLK / (1 + UART_BAUDRATE_VAL) / 16 = 36.86746988MHz / (1 + 19) / 16 = 115211Hz
+#define UART_BAUDRATE_VAL_9600		239					//!< Wert für USART Baud Rate Generator register fuer 9k6
+#define UART_BAUDRATE_VAL_115200	19					//!< Wert für USART Baud Rate Generator register fuer 115k2
+#define UART_BAUDRATE_VAL	UART_BAUDRATE_VAL_9600
+// --> Baudrate = U_PCLK / (1 + UART_BAUDRATE_VAL) / 16 = 36.86746988MHz / (1 + 239) / 16 = 9600Hz
+// --> Baudrate = U_PCLK / (1 + UART_BAUDRATE_VAL) / 16 = 36.86746988MHz / (1 +  19) / 16 = 115211Hz
 
 static uint32_t crit = 0;
 

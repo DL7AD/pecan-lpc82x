@@ -332,7 +332,7 @@ void GPS_Init() {
 }
 
 void GPS_hibernate_uart(void) {
-	//UART_DeInit();							// Stop UART
+	//UART_DeInit();						// Stop UART
 }
 
 void GPS_wake_uart(void) {
@@ -340,11 +340,9 @@ void GPS_wake_uart(void) {
 }
 
 void GPS_PowerOff(void) {
-	#ifdef USE_GPS_HW_SW
 	gps_hw_switch(false);					// Power down GPS
-	#endif
 
-	//UART_DeInit();							// Power off UART
+	//UART_DeInit();						// Power off UART
 	isOn = false;
 }
 
@@ -358,10 +356,8 @@ void GPS_PowerOff(void) {
  * - Disables power save mode (has to be activated separately)
  */
 void GPS_PowerOn(void) {
-	#ifdef USE_GPS_HW_SW
 	gps_hw_switch(true);					// Power up GPS
-	delay(3000);							// Just to be sure GPS has booted completely
-	#endif
+	delay(3000);							// Wait for GPS to boot
 
 //	gps_set_nmeaCompatibility();			// Configure compatibility mode, this must be done because the code assumes specific NMEA parameter lengths
 //	delay(100);

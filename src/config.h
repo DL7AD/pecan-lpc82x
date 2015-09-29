@@ -20,10 +20,6 @@
 
 #include "defines.h"
 
-// Type of Pecan
-//							TARGET_FEMTO_PICO3    for Pecan Femto 3
-#define TARGET				TARGET_PECAN_FEMTO3
-
 // APRS Source Callsign
 #define S_CALLSIGN			"DL7AD"
 #define S_CALLSIGN_ID		13
@@ -45,18 +41,23 @@
 #define TX_DELAY			60
 
 
-#define TIME_SLEEP_CYCLE	60
+#define TIME_SLEEP_CYCLE	300
 #define TIME_MAX_GPS_SEARCH	120
 
-// Radio power:				Radio power (for Si4464)
-//							Range 1-127, Radio output power depends on VCC voltage.
-//							127 @ VCC=3400mV ~ 100mW
-//							20  @ VCC=3400mV ~ 10mW
+// Radio power:				Radio power (for Si4063 @ VCC=2500mV)
+//							Range 1-127
+//							127 ~ 50mW
+//							20  ~ 5mW
+//							7   ~ 1mW
+// Radio power:				Radio power (for Si4060 @ VCC=2500mV)
+//							Range 1-127
+//							127 ~ 10mW
+//							20  ~ 1mW
 #define RADIO_POWER			5
 
 // Logging size:
-#define LOG_SIZE			0
-#define LOG_CYCLE_TIME		7200
+#define LOG_SIZE			0		// Log size (Set to 0 to disable log function)
+#define LOG_CYCLE_TIME		7200	// Log point sample cycle in seconds
 #define LOG_TRX_NUM			6		// Log messages that are transmitted in one packet
 
 /* ============================================== Target definitions =============================================== */
@@ -70,52 +71,48 @@
 // 1. Use GPS power save:	GPS will be switched on permanently and sent into power save mode when GPS has
 //							lock (when >4Sats). GPS and UART interface will be reset and reinitialized when GPS
 //							does not lock for 3 cycles. To use this mode, USE_GPS_POWER_SAVE has to be set.
-//#define
+//#define USE_GPS_POWER_SAVE
 
-// Battery type: Pecan Pico has two options of battery types
+// Battery type: Pecan Femto has two options of battery types
 // 1. PRIMARY				LiFeSe2 Power save modes disabled, battery will be used until completely empty
-// 2. SECONDARY				LiFePO4 GPS will be kept off below 2700mV, no transmission is made below 2500mV to keep
+// 2. LiFePo4				LiFePO4 GPS will be kept off below 2700mV, no transmission is made below 2500mV to keep
 //							the accumulator healthy
+// 2. LiPo					LiPo GPS will be kept off below 3000mV, no transmission is made below 2500mV to keep the
+//							accumulator healthy
 #define BATTERY_TYPE		PRIMARY
 
-// Oscillator frequency:	The oscillator is powered by different VCC levels and different PWM levels. So it has to
-//							be adjusted/stabilized by software depending on voltage. At the moment there are two
-//							different oscillators being used by Thomas (DL4MDW) and Sven (DL7AD)
-#define OSC_FREQ			19997700
-//#define OSC_FREQ			26992900
+// Solar feed available
+#define SOLAR_AVAIL
 
 /* ============================================== Target definitions =============================================== */
 /* ========================================== Please don't touch anything ========================================== */
 
-#if TARGET == TARGET_PECAN_FEMTO3
+#define REF_MV				2500		// Reference voltage (Vcc)
+#define OSC_FREQ			26992900	// Oscillator frequency
 
-	#define SOLAR_AVAIL							// Solar feed available
-	#define GPS_BAUDRATE		9600			// Baudrate for ublox MAX7 or MAX8
-	#define REF_MV				3300
+#define UART_RXD_PIN		0			// GPS TXD pin
+#define UART_TXD_PIN		14			// GPS RXD pin
 
-	#define UART_RXD_PIN		0
-	#define UART_TXD_PIN		14
+#define ADC_BATT_PIN		4			// ADC battery (connected to voltage divider, factor 0.5)
+#define ADC_SOLAR_PIN		17			// ADC solar panels (directly connected)
 
-	#define ADC_BATT_PIN		4
-	#define ADC_SOLAR_PIN		17
+#define RADIO_MOSI_PIN		27			// MOSI
+#define RADIO_MISO_PIN		26			// MISO
+#define RADIO_SCK_PIN		25			// SCK
+#define RADIO_CS_PIN		16			// CS Si446x
+#define RADIO_SDN_PIN		10			// Radio shutdown
+#define RADIO_GPIO_PIN		1			// Radio GPIO (GPIO1 at Si446x)
 
-	#define RADIO_MOSI_PIN		27
-	#define RADIO_MISO_PIN		26
-	#define RADIO_SCK_PIN		25
-	#define RADIO_CS_PIN		16
-	#define RADIO_SDN_PIN		10
-	#define RADIO_GPIO_PIN		1
+										// GPS power switch pins (have to be switched both in same state)
+#define GPS_PWR_PIN1		12			// Power switch pin 1 (connected to GPS_Vcc)
+#define GPS_PWR_PIN2		13			// Power switch pin 2 (connected to GPS_Vcc)
 
-	#define GPS_PWR_PIN1		12
-	#define GPS_PWR_PIN2		13
-
-#else
-	#error No/incorrect target selected
-#endif
+/* =============================================== Misc definitions ================================================ */
+/* ========================================== Please don't touch anything ========================================== */
 
 #if BATTERY_TYPE == SECONDARY
-	#define VOLTAGE_NOGPS		2500			// Don't switch on GPS below this voltage (Telemetry transmission only)
-	#define VOLTAGE_NOTRANSMIT	2300			// Don't transmit below this voltage
+	#define VOLTAGE_NOGPS		3000			// Don't switch on GPS below this voltage (Telemetry transmission only)
+	#define VOLTAGE_NOTRANSMIT	2700			// Don't transmit below this voltage
 	#define VOLTAGE_GPS_MAXDROP 100				// Max. Battery drop voltage until GPS is switched off while acquisition
 												// Example: VOLTAGE_NOGPS = 2700 & VOLTAGE_GPS_MAXDROP = 100 => GPS will be switched
 												// off at 2600mV, GPS will not be switched on if battery voltage already below 2700mV
@@ -125,23 +122,10 @@
 	#define VOLTAGE_GPS_MAXDROP 0
 #endif
 
-
-
 /* ================================================ Error messages ================================================= */
 /* ========================================== Please don't touch anything ========================================== */
 
 // TODO: Rewrite configuration validation again
-
-
-/* =============================================== Misc definitions ================================================ */
-/* ========================================== Please don't touch anything ========================================== */
-
-#ifdef BMP180_AVAIL
-	#define USE_I2C
-#endif
-#if GPS_BUS == I2C
-	#define USE_I2C
-#endif
 
 /* ============================ Constant definitions (which will never change in life) ============================= */
 /* ========================================== Please don't touch anything ========================================== */

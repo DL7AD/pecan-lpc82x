@@ -1,6 +1,8 @@
 #include "log.h"
 #include "config.h"
 
+#if LOG_SIZE
+
 static track_t track[LOG_SIZE]; // Log data
 static uint8_t trackPointer = 0; // Logging pointer for logging
 static uint8_t trackPointerTRX = 0; // Logging pointer for transmission
@@ -20,3 +22,5 @@ track_t* getNextLogPoint(void) {
 	trackPointerTRX = (trackPointerTRX+1) % (!lastTrack ? 1 : lastTrack);
 	return logPoint;
 }
+
+#endif

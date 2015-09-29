@@ -66,7 +66,9 @@ int main(void)
 	track_t trackPoint;
 
 	uint64_t timestampPointer = 0;
+	#if LOG_SIZE
 	uint64_t lastLogPoint = 0;
+	#endif
 	uint32_t id = 0;
 
 	while(true) {
@@ -179,10 +181,12 @@ int main(void)
 				radioShutdown();
 				#endif
 
+				#if LOG_SIZE
 				if(getUnixTimestamp()-lastLogPoint >= LOG_CYCLE_TIME*1000) { // New log point necessary
 					logTrackPoint(trackPoint);
 					lastLogPoint = getUnixTimestamp();
 				}
+				#endif
 
 				trackingstate = TRANSMIT;
 				break;
@@ -200,11 +204,13 @@ int main(void)
 				// Transmit APRS position
 				transmit_position(&trackPoint, gpsstate, lastFix.course, lastFix.speed);
 
+				#if LOG_SIZE
 				// Wait a few seconds (Else aprs.fi reports "[Rate limited (< 5 sec)]")
 				power_save(6000);
 
 				// Transmit log packet
 				transmit_log(&trackPoint);
+				#endif
 
 				// Change state depending on GPS status
 				if(gpsstate == GPS_LOCK || gpsstate == GPS_LOW_BATT) {
