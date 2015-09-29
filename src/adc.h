@@ -29,7 +29,7 @@
 void ADC_Init(void);
 void ADC_DeInit(void);
 uint32_t getBatteryMV(void);
-uint16_t getADC(uint8_t ad);
+uint32_t getADC(uint8_t ad);
 uint32_t getSolarMV(void);
 
 #endif

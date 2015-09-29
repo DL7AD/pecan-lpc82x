@@ -91,22 +91,24 @@
 #define REF_MV				2500				// Reference voltage (Vcc)
 #define OSC_FREQ			26992900			// Oscillator frequency
 
-#define UART_RXD_PIN		IOCON_PIO0			// GPS TXD pin
-#define UART_TXD_PIN		IOCON_PIO14			// GPS RXD pin
+#define UART_RXD_PIN		0					// GPS TXD pin
+#define UART_TXD_PIN		14					// GPS RXD pin
 
 #define ADC_BATT_PIN		SWM_FIXED_ADC11		// ADC battery (connected to voltage divider, factor 0.5)
+#define ADC_BATT_CH			11					// ADC channel battery (connected to voltage divider, factor 0.5)
 #define ADC_SOLAR_PIN		SWM_FIXED_ADC9		// ADC solar panels (directly connected)
+#define ADC_SOLAR_CH		9					// ADC channel solar panels (directly connected)
 
-#define RADIO_MOSI_PIN		IOCON_PIO27			// MOSI
-#define RADIO_MISO_PIN		IOCON_PIO26			// MISO
-#define RADIO_SCK_PIN		IOCON_PIO25			// SCK
-#define RADIO_CS_PIN		IOCON_PIO16			// CS Si446x
-#define RADIO_SDN_PIN		IOCON_PIO10			// Radio shutdown
-#define RADIO_GPIO_PIN		IOCON_PIO1			// Radio GPIO (GPIO1 at Si446x)
+#define RADIO_MOSI_PIN		27					// MOSI
+#define RADIO_MISO_PIN		26					// MISO
+#define RADIO_SCK_PIN		25					// SCK
+#define RADIO_CS_PIN		16					// CS Si446x
+#define RADIO_SDN_PIN		10					// Radio shutdown
+#define RADIO_GPIO_PIN		1					// Radio GPIO (GPIO1 at Si446x)
 
 												// GPS power switch pins (have to be switched both in same state)
-#define GPS_PWR_PIN1		IOCON_PIO12			// Power switch pin 1 (connected to GPS_Vcc)
-#define GPS_PWR_PIN2		IOCON_PIO13			// Power switch pin 2 (connected to GPS_Vcc)
+#define GPS_PWR_PIN1		12					// Power switch pin 1 (connected to GPS_Vcc)
+#define GPS_PWR_PIN2		13					// Power switch pin 2 (connected to GPS_Vcc)
 
 /* =============================================== Misc definitions ================================================ */
 /* ========================================== Please don't touch anything ========================================== */

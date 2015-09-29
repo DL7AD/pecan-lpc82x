@@ -29,7 +29,7 @@ void ADC_DeInit(void) {
  */
 uint32_t getBatteryMV(void)
 {
-	return (getADC(ADC_BATT_PIN) * REF_MV) >> 12;		// Return battery voltage
+	return (getADC(ADC_BATT_CH) * REF_MV) >> 11;		// Return battery voltage (voltage divider factor included)
 }
 
 /**
@@ -38,20 +38,24 @@ uint32_t getBatteryMV(void)
  */
 uint32_t getSolarMV(void)
 {
-	return (getADC(ADC_SOLAR_PIN) * REF_MV) >> 12;		// Return solar voltage
+	return (getADC(ADC_SOLAR_CH) * REF_MV) >> 12;		// Return solar voltage
 }
 
 /**
  * Measures voltage at specific ADx and returns 12bit value (2^12-1 equals LPC reference voltage)
  * @param ad ADx pin
  */
-uint16_t getADC(uint8_t ad)
+uint32_t getADC(uint8_t ad)
 {
 	// Start ADC conversion
 	Chip_ADC_SetupSequencer(LPC_ADC, ADC_SEQA_IDX, ADC_SEQ_CTRL_CHANSEL(ad) | ADC_SEQ_CTRL_MODE_EOS);
 	Chip_ADC_EnableSequencer(LPC_ADC, ADC_SEQA_IDX);
 	Chip_ADC_StartBurstSequencer(LPC_ADC, ADC_SEQA_IDX);
-	uint32_t seq_gdat = Chip_ADC_GetSequencerDataReg(LPC_ADC, ADC_SEQ_CTRL_CHANSEL(ad));
 
-	return (LPC_ADC->DR[ad] >> 4) & 0xFFF;			// Cut out 12bit value
+	// Wait for sampler
+	uint32_t seq_gdat = 0;
+	while((seq_gdat & 0x1F) == 0)
+		seq_gdat = Chip_ADC_GetSequencerDataReg(LPC_ADC, ADC_SEQ_CTRL_CHANSEL(ad));
+
+	return (seq_gdat >> 4) & 0xFFF; // Cut out 12bit value
 }
