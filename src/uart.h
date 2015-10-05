@@ -24,6 +24,7 @@
 
 bool	UART_Init(void);
 
+void UART0_IRQHandler(void);
 bool UART_TxByte(uint8_t Data);
 bool UART_RxByte(uint8_t* pData);
 uint32_t UART_TxString(const uint8_t* pData, uint32_t Len);

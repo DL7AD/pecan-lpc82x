@@ -36,8 +36,7 @@
 #define UART_PRESCALE				1					//!< UART Prescaler
 #define UART_FRACTIONAL_M			77					//!< Zähler für fractional divider
 // --> U_PCLK = Fcclk / UART_PRESCALE / (1 + UART_FRACTIONAL_M/255) = 48MHz / 1 / (1 + 77/255) = 36.86746988MHz
-#define UART_BAUDRATE_VAL_9600		239					//!< Wert für USART Baud Rate Generator register fuer 9k6
-#define UART_BAUDRATE_VAL_115200	19					//!< Wert für USART Baud Rate Generator register fuer 115k2
+#define UART_BAUDRATE_VAL_9600		119					//!< Wert für USART Baud Rate Generator register fuer 9k6
 #define UART_BAUDRATE_VAL	UART_BAUDRATE_VAL_9600
 // --> Baudrate = U_PCLK / (1 + UART_BAUDRATE_VAL) / 16 = 36.86746988MHz / (1 + 239) / 16 = 9600Hz
 // --> Baudrate = U_PCLK / (1 + UART_BAUDRATE_VAL) / 16 = 36.86746988MHz / (1 +  19) / 16 = 115211Hz
@@ -86,7 +85,7 @@ static T_ByteFIFO UART_RxFIFO;							//!< Receive-FIFO
 /**************************************************************************//**
  * @brief		Handler für UART Interrupt
  */
-void	On_UART(void)
+void UART0_IRQHandler(void)
 {
 uint32_t Data;
 
