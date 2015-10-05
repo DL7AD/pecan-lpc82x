@@ -62,12 +62,12 @@ void Si446x_write(uint16_t* txData, uint32_t len) {
 	SPI_Transmit(txData, NULL, len);
 
 	// Reqest ACK by Si446x
-	uint16_t rx_answer[] = {0x00};
+	uint16_t rx_answer[] = {0x00,0x00};
 	while(rx_answer[0] != 0xFF) {
 
 		// Request ACK by Si446x
-		uint16_t rx_ready[] = {0x44};
-		SPI_Transmit(rx_ready, rx_answer, 1);
+		uint16_t rx_ready[] = {0x44,0x00};
+		SPI_Transmit(rx_ready, rx_answer, 2);
 
 		if(rx_answer[0] != 0xFF) // Si not finished, wait for it
 			delay(1);
