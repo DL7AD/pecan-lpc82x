@@ -44,6 +44,8 @@ void power_save()
 	#endif
 }
 
+uint32_t test = 0;
+
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -58,9 +60,9 @@ int main(void)
 	// This delay is necessary to get access again after module fell into a deep sleep state in which the reset pin is disabled !!!
 	// To get access again, its necessary to access the chip in active mode. If chip is almost every time in sleep mode, it can be
 	// only waked up by the reset pin which is (as mentioned before) disabled.
-	delay(10000); // !!! IMPORTANT IMPORTANT IMPORTANT !!! DO NOT REMOVE THIS DELAY UNDER ANY CIRCUMSTANCES !!!
+	delay(3000); // !!! IMPORTANT IMPORTANT IMPORTANT !!! DO NOT REMOVE THIS DELAY UNDER ANY CIRCUMSTANCES !!!
 
-	trackingstate_t trackingstate = LOG;
+	trackingstate_t trackingstate = SWITCH_ON_GPS; // Initially LOG
 	gpsstate_t gpsstate = GPS_LOSS;
 
 	track_t trackPoint;
@@ -76,6 +78,7 @@ int main(void)
 		// Measure battery voltage
 		ADC_Init();
 		uint32_t batt_voltage = getBatteryMV();
+		uint32_t sol_voltage = getSolarMV();
 		ADC_DeInit();
 
 		// Freeze tracker when battery below specific voltage
@@ -161,25 +164,16 @@ int main(void)
 				trackPoint.satellites = lastFix.satellites;
 				trackPoint.ttff = lastFix.ttff;
 
-				ADC_Init();
-				trackPoint.vbat = VBAT_TO_EIGHTBIT(getBatteryMV());
+				trackPoint.vbat = VBAT_TO_EIGHTBIT(batt_voltage);
 				#ifdef SOLAR_AVAIL
-				trackPoint.vsol = VSOL_TO_EIGHTBIT(getSolarMV());
+				trackPoint.vsol = VSOL_TO_EIGHTBIT(sol_voltage);
 				#else
 				trackPoint.vsol = 0;
 				#endif
-				ADC_DeInit();
 
-				#ifdef BMP180_AVAIL
-				BMP180_Init();
-				trackPoint.temp = (getTemperature() / 10);
-				trackPoint.pressure = getPressure();
-				BMP180_DeInit();
-				#else
 				Si446x_Init();
 				trackPoint.temp = Si446x_getTemperature();
 				radioShutdown();
-				#endif
 
 				#if LOG_SIZE
 				if(getUnixTimestamp()-lastLogPoint >= LOG_CYCLE_TIME*1000) { // New log point necessary

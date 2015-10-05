@@ -16,7 +16,7 @@ void ADC_Init(void) {
 	while(!Chip_ADC_IsCalibrationDone(LPC_ADC));
 
 	// Configure clock
-	Chip_ADC_SetClockRate(LPC_ADC, 1000); // Clock 1kHz
+	// Chip_ADC_SetClockRate(LPC_ADC, 1000); // Clock 1kHz
 }
 
 void ADC_DeInit(void) {
