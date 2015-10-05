@@ -80,7 +80,7 @@
 //							the accumulator healthy
 // 2. LiPo					LiPo GPS will be kept off below 3000mV, no transmission is made below 2500mV to keep the
 //							accumulator healthy
-#define BATTERY_TYPE		LiPo
+#define BATTERY_TYPE		PRIMARY
 
 // Solar feed available
 #define SOLAR_AVAIL
