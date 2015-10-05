@@ -25,6 +25,9 @@ void SPI_Init(void)
 						  SPI_CFG_MSB_FIRST_EN |		// Enable MSB first option
 						  SPI_CFG_SPOL_LO);				// Chipselect is active low
 
+	// Configure clocking
+	Chip_SPIM_SetClockRate(LPC_SPI1, 100000);
+
 	// Configure timings
 	DelayConfigStruct.FrameDelay = 0;
 	DelayConfigStruct.PostDelay = 0;
