@@ -1,6 +1,7 @@
 #include "chip.h"
 #include "spi.h"
 #include "config.h"
+#include "time.h"
 
 static SPI_DELAY_CONFIG_T DelayConfigStruct;
 static SPI_DATA_SETUP_T XfSetup;
@@ -50,7 +51,8 @@ void SPI_Transmit(uint16_t *TxBuf, uint16_t *RxBuf, uint32_t len)
 	XfSetup.pRx = RxBuf;
 
 	// Transmit packet
-	Chip_SPI_WriteFrames_Blocking(LPC_SPI1, &XfSetup);
+	Chip_SPI_RWFrames_Blocking(LPC_SPI1, &XfSetup);
+	delay(10); /* FIXME */
 }
 
 void SPI_DeInit(void)

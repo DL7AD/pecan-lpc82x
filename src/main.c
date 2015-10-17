@@ -44,8 +44,6 @@ void power_save()
 	#endif
 }
 
-uint32_t test = 0;
-
 int main(void)
 {
 	SystemCoreClockUpdate();
@@ -62,7 +60,7 @@ int main(void)
 	// only waked up by the reset pin which is (as mentioned before) disabled.
 	delay(3000); // !!! IMPORTANT IMPORTANT IMPORTANT !!! DO NOT REMOVE THIS DELAY UNDER ANY CIRCUMSTANCES !!!
 
-	trackingstate_t trackingstate = SWITCH_ON_GPS; // Initially LOG
+	trackingstate_t trackingstate = LOG; // Initially LOG
 	gpsstate_t gpsstate = GPS_LOSS;
 
 	track_t trackPoint;
@@ -146,7 +144,8 @@ int main(void)
 					}
 				}
 
-				if(getUnixTimestamp()-timestampPointer >= TIME_MAX_GPS_SEARCH*1000) { // Searching for GPS took too long
+				uint64_t time = getUnixTimestamp();
+				if(time-timestampPointer >= TIME_MAX_GPS_SEARCH*1000) { // Searching for GPS took too long
 					gpsSetTime2lock(TIME_MAX_GPS_SEARCH);
 					trackingstate = LOG;
 					gpsstate = GPS_LOSS;

@@ -1,5 +1,6 @@
 #include "types.h"
 #include "chip.h"
+#include "gps.h"
 
 int64_t unixTimeStamp = 0; // UNIX timestamp in milliseconds
 const uint16_t nonLeapYear[] = {0,31,59,90,120,151,181,212,243,273,304,334,365};
@@ -10,6 +11,7 @@ const uint16_t leapYear[] = {0,31,60,91,121,152,182,213,244,274,305,335,366};
  * by Tick timer interrupt
  */
 void SysTick_Handler(void) {
+	checkGpsLEDTimeout();
 	unixTimeStamp++;
 }
 

@@ -1,5 +1,6 @@
 #include "config.h"
 #include "adc.h"
+#include "time.h"
 
 void ADC_Init(void) {
 	// Configure pins
@@ -29,7 +30,8 @@ void ADC_DeInit(void) {
  */
 uint32_t getBatteryMV(void)
 {
-	return (getADC(ADC_BATT_CH) * REF_MV) >> 11;		// Return battery voltage (voltage divider factor included)
+	uint32_t adc = getADC(ADC_BATT_CH);
+	return (adc * REF_MV) >> 11;		// Return battery voltage (voltage divider factor included)
 }
 
 /**
@@ -52,10 +54,17 @@ uint32_t getADC(uint8_t ad)
 	Chip_ADC_EnableSequencer(LPC_ADC, ADC_SEQA_IDX);
 	Chip_ADC_StartBurstSequencer(LPC_ADC, ADC_SEQA_IDX);
 
-	// Wait for sampler
+	uint32_t i = 0;
 	uint32_t seq_gdat = 0;
-	while((seq_gdat & 0x1F) == 0)
+	while((seq_gdat & ADC_SEQ_GDAT_DATAVALID) == 0)
+	{
+		// Retrieve sampled data
 		seq_gdat = Chip_ADC_GetSequencerDataReg(LPC_ADC, ADC_SEQ_CTRL_CHANSEL(ad));
+		if(i > 1000) {
+			return 0;
+		}
+		i++;
+	}
 
-	return (seq_gdat >> 4) & 0xFFF; // Cut out 12bit value
+	return (seq_gdat & ADC_SEQ_GDAT_RESULT_MASK) >> ADC_SEQ_GDAT_RESULT_BITPOS; // Cut out 12bit value
 }

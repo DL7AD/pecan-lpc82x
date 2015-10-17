@@ -11,7 +11,10 @@
 #include "time.h"
 
 #define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN, Select)
-#define RADIO_SDN_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select)
+#define RADIO_SDN_SET(Select) { \
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select); \
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_RADIO, Select); \
+}
 
 /**
  * Initializes Si446x transceiver chip. Adjustes the frequency which is shifted by variable
@@ -25,10 +28,11 @@ bool Si446x_Init(void) {
 	// Configure GPIO pins
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, RADIO_SDN_PIN);
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN);
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, LED_RADIO);
 
 	// Power up transmitter
 	RADIO_SDN_SET(false);								// Radio SDN low (power up transmitter)
-	delay(1);											// Wait for transmitter to power up
+	delay(10);											// Wait for transmitter to power up
 
 	// Power up (transmits oscillator type)
 	uint8_t x3 = (OSC_FREQ >> 24) & 0x0FF;
@@ -41,8 +45,8 @@ bool Si446x_Init(void) {
 	// Set transmitter GPIOs
 	uint16_t gpio_pin_cfg_command[] = {
 		0x13,	// Command type = GPIO settings
-		0x44,	// GPIO0        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
-		0x00,	// GPIO1        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
+		0x00,	// GPIO0        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
+		0x44,	// GPIO1        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
 		0x00,	// GPIO2        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
 		0x00,	// GPIO3        0 - PULL_CTL[1bit] - GPIO_MODE[6bit]
 		0x00,	// NIRQ
@@ -59,17 +63,18 @@ bool Si446x_Init(void) {
 
 void Si446x_write(uint16_t* txData, uint32_t len) {
 	// Transmit data by SPI
-	SPI_Transmit(txData, NULL, len);
+	uint16_t rxData[len];
+	SPI_Transmit(txData, rxData, len);
 
 	// Reqest ACK by Si446x
-	uint16_t rx_answer[] = {0x00,0x00};
-	while(rx_answer[0] != 0xFF) {
+	rxData[0] = 0x00;
+	while(rxData[0] != 0xFF) {
 
 		// Request ACK by Si446x
-		uint16_t rx_ready[] = {0x44,0x00};
-		SPI_Transmit(rx_ready, rx_answer, 2);
+		uint16_t rx_ready[] = {0x44};
+		SPI_Transmit(rx_ready, rxData, 1);
 
-		if(rx_answer[0] != 0xFF) // Si not finished, wait for it
+		if(rxData[0] != 0xFF) // Si not finished, wait for it
 			delay(1);
 	}
 }
@@ -77,18 +82,19 @@ void Si446x_write(uint16_t* txData, uint32_t len) {
 /**
  * Read register from Si446x. First Register CTS is included.
  */
-void Si446x_read(uint16_t* txData, uint32_t txLen, uint16_t* rxData, uint32_t rxLen) {
+void Si446x_read(uint16_t* txData, uint32_t txlen, uint16_t* rxData, uint32_t rxlen) {
 	// Transmit data by SPI
-	SPI_Transmit(txData, NULL, txLen);
+	uint16_t null_spi[txlen];
+	SPI_Transmit(txData, null_spi, txlen);
 
 	// Reqest ACK by Si446x
-	uint16_t rx_answer[] = {0x00};
-	while(rx_answer[0] != 0xFF) {
+	rxData[0] = 0x00;
+	while(rxData[0] != 0xFF) {
 
 		// Request ACK by Si446x
-		uint16_t rx_ready[rxLen];
+		uint16_t rx_ready[rxlen];
 		rx_ready[0] = 0x44;
-		SPI_Transmit(rx_ready, rxData, rxLen);
+		SPI_Transmit(rx_ready, rxData, rxlen);
 
 		if(rxData[0] != 0xFF) // Si not finished, wait for it
 			delay(1);
@@ -134,7 +140,6 @@ void sendFrequencyToSi446x(uint32_t freq) {
 }
 
 void setModem() {
-
 	// Disable preamble
 	uint16_t disable_preamble[] = {0x11, 0x10, 0x01, 0x00, 0x00};
 	Si446x_write(disable_preamble, 5);
@@ -156,8 +161,8 @@ void setModem() {
 	uint16_t setup_data_rate[] = {0x11, 0x20, 0x03, 0x03, 0x00, 0x11, 0x30};
 	Si446x_write(setup_data_rate, 7);
 
-	// use 2GFSK from async GPIO0
-	uint16_t use_2gfsk[] = {0x11, 0x20, 0x01, 0x00, 0x0B};
+	// use 2GFSK from async GPIO1
+	uint16_t use_2gfsk[] = {0x11, 0x20, 0x01, 0x00, 0x2B};
 	Si446x_write(use_2gfsk, 5);
 
 	// Set AFSK filter
@@ -197,7 +202,7 @@ void radioShutdown(void) {
  * @param level Transmission power level (see power level description in config file)
  */
 void radioTune(uint32_t frequency, uint8_t level) {
-	stopTx();
+	//stopTx();
 
 	if(frequency < 119000000UL || frequency > 1050000000UL)
 		frequency = 145300000UL;
@@ -214,8 +219,8 @@ void setGPIO(bool s) {
 
 int8_t Si446x_getTemperature(void) {
 	uint16_t txData[2] = {0x14, 0x10};
-	uint16_t rxData[7];
-	Si446x_read(txData, sizeof(txData), rxData, sizeof(rxData));
+	uint16_t rxData[16];
+	Si446x_read(txData, 2, rxData, 16);
 	uint16_t adc = rxData[6] | ((rxData[5] & 0x7) << 8);
 	return (899*adc)/4096 - 293;
 }

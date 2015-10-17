@@ -89,7 +89,7 @@
 /* ========================================== Please don't touch anything ========================================== */
 
 #define REF_MV				2500				// Reference voltage (Vcc)
-#define OSC_FREQ			26992900			// Oscillator frequency
+#define OSC_FREQ			26000000			// Oscillator frequency
 
 #define UART_RXD_PIN		0					// GPS TXD pin
 #define UART_TXD_PIN		14					// GPS RXD pin
@@ -109,6 +109,9 @@
 												// GPS power switch pins (have to be switched both in same state)
 #define GPS_PWR_PIN1		12					// Power switch pin 1 (connected to GPS_Vcc)
 #define GPS_PWR_PIN2		13					// Power switch pin 2 (connected to GPS_Vcc)
+
+#define LED_GPS				11
+#define LED_RADIO			28
 
 /* =============================================== Misc definitions ================================================ */
 /* ========================================== Please don't touch anything ========================================== */

@@ -52,5 +52,7 @@ uint32_t gps_get_region_frequency();
 void gpsSetTime2lock(uint32_t ms);
 void gps_hw_switch(bool pos);
 bool gpsIsOn(void);
+void setGpsLED(uint32_t time);
+void checkGpsLEDTimeout(void);
 
 #endif

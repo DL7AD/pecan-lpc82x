@@ -27,5 +27,6 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 #if LOG_SIZE
 void transmit_log(track_t *trackPoint);
 #endif
+char* fitoa(uint32_t num, char *buffer, uint32_t min_len);
 
 #endif

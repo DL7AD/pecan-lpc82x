@@ -198,6 +198,7 @@ static char token[16];
 static int16_t num_tokens = 0;
 static uint16_t offset = 0;
 static bool isOn = false;
+static uint64_t gps_timeout = 0;
 
 // Module functions
 unsigned char from_hex(char a)
@@ -441,6 +442,7 @@ bool gps_decode(char c)
 					case SENTENCE_GGA:
 						time_lastGGApacket = (time/1000) % 86400; // Mark timestamp of last GGA packet
 						lastFix.satellites = newFix.satellites;
+						setGpsLED(100);
 						break;
 					case SENTENCE_RMC:
 						time_lastRMCpacket = (time/1000) % 86400; // Mark timestamp of last RMC packet
@@ -586,4 +588,17 @@ void gps_hw_switch(bool pos) {
 
 bool gpsIsOn(void) {
 	return isOn;
+}
+
+void setGpsLED(uint32_t time) {
+	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, LED_GPS); // GPS LED
+	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_GPS, false); // Switch on LED
+	gps_timeout = time + 1;
+}
+
+void checkGpsLEDTimeout(void) {
+	if(gps_timeout > 1)
+		gps_timeout--;
+	if(gps_timeout == 1)
+		Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_GPS, true); // Switch off LED
 }

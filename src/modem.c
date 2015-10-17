@@ -81,6 +81,8 @@ void Modem_Init(void)
 	radioTune(gps_get_region_frequency(), RADIO_POWER);
 
 	// Setup sampling timer
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SCT);
+	Chip_SYSCTL_PeriphReset(RESET_SCT);
 	Chip_SCT_Config(LPC_SCT, SCT_CONFIG_32BIT_COUNTER | SCT_CONFIG_CLKMODE_BUSCLK);
 	Chip_SCT_SetMatchCount(LPC_SCT, SCT_MATCH_0, SystemCoreClock / PLAYBACK_RATE);	// Set the match count for match register 0
 	Chip_SCT_SetMatchReload(LPC_SCT, SCT_MATCH_0, SystemCoreClock / PLAYBACK_RATE);	// Set the match reload value for match reload register 0
@@ -88,9 +90,9 @@ void Modem_Init(void)
 	LPC_SCT->EV[0].STATE = 0x00000001;												// Event 0 only happens in state 0
 	LPC_SCT->LIMIT_U = 0x00000001;													// Event 0 is used as the counter limit
 	Chip_SCT_EnableEventInt(LPC_SCT, SCT_EVT_0);									// Enable flag to request an interrupt for Event 0
+	modem_busy = true;																// Set modem busy flag
 	NVIC_EnableIRQ(SCT_IRQn);														// Enable the interrupt for the SCT
 	Chip_SCT_ClearControl(LPC_SCT, SCT_CTRL_HALT_L);								// Start the SCT counter by clearing Halt_L in the SCT control register
-	modem_busy = true;
 }
 
 void modem_flush_frame(void) {
