@@ -11,10 +11,8 @@
 #include "time.h"
 
 #define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN, Select)
-#define RADIO_SDN_SET(Select) { \
-	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select); \
-	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_RADIO, Select); \
-}
+#define RADIO_SDN_SET(Select) Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select);
+#define RADIO_LED_SET(Select) Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_RADIO, !Select);
 
 /**
  * Initializes Si446x transceiver chip. Adjustes the frequency which is shifted by variable
@@ -181,16 +179,19 @@ void setPowerLevel(uint8_t level) {
 }
 
 void startTx(void) {
+	RADIO_LED_SET(true);
 	uint16_t change_state_command[] = {0x34, 0x07};
 	Si446x_write(change_state_command, 2);
 }
 
 void stopTx(void) {
+	RADIO_LED_SET(false);
 	uint16_t change_state_command[] = {0x34, 0x03};
 	Si446x_write(change_state_command, 2);
 }
 
 void radioShutdown(void) {
+	RADIO_LED_SET(false);	// Switch off LED
 	RADIO_SDN_SET(true);	// Power down chip
 	SPI_DeInit();			// Power down SPI
 }

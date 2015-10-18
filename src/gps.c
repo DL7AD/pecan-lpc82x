@@ -442,7 +442,11 @@ bool gps_decode(char c)
 					case SENTENCE_GGA:
 						time_lastGGApacket = (time/1000) % 86400; // Mark timestamp of last GGA packet
 						lastFix.satellites = newFix.satellites;
-						setGpsLED(100);
+						if(newFix.active) {
+							setGpsLED(100);
+						} else {
+							setGpsLED(UINT32_MAX);
+						}
 						break;
 					case SENTENCE_RMC:
 						time_lastRMCpacket = (time/1000) % 86400; // Mark timestamp of last RMC packet
@@ -584,6 +588,7 @@ void gps_hw_switch(bool pos) {
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, GPS_PWR_PIN2);
 	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GPS_PWR_PIN1, pos); // Switch GPS on
 	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, GPS_PWR_PIN2, pos);
+	setGpsLED(UINT32_MAX * pos);
 }
 
 bool gpsIsOn(void) {
