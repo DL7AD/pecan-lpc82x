@@ -219,8 +219,8 @@ void setGPIO(bool s) {
 
 int8_t Si446x_getTemperature(void) {
 	uint16_t txData[2] = {0x14, 0x10};
-	uint16_t rxData[16];
-	Si446x_read(txData, 2, rxData, 16);
-	uint16_t adc = rxData[6] | ((rxData[5] & 0x7) << 8);
+	uint16_t rxData[8];
+	Si446x_read(txData, 2, rxData, 8);
+	uint16_t adc = rxData[7] | ((rxData[6] & 0x7) << 8);
 	return (899*adc)/4096 - 293;
 }
