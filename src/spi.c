@@ -52,7 +52,7 @@ void SPI_Transmit(uint16_t *TxBuf, uint16_t *RxBuf, uint32_t len)
 
 	// Transmit packet
 	Chip_SPI_RWFrames_Blocking(LPC_SPI1, &XfSetup);
-	delay(10); /* FIXME */
+	delay(20); /* FIXME */
 }
 
 void SPI_DeInit(void)
