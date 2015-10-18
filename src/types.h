@@ -31,7 +31,8 @@ typedef enum {
 	SWITCH_ON_GPS,			// Switch on GPS
 	SEARCH_GPS,				// Search for GPS
 	LOG,					// Log data packet
-	TRANSMIT				// Transmit state
+	TRANSMIT,				// Transmit telemetry and position
+	TRANSMIT_CONFIG			// Transmit telemetry configuration
 } trackingstate_t;
 
 typedef enum {
@@ -39,6 +40,13 @@ typedef enum {
 	GPS_LOSS,
 	GPS_LOW_BATT
 } gpsstate_t;
+
+typedef enum {
+	CONFIG_PARM,
+	CONFIG_UNIT,
+	CONFIG_EQNS,
+	CONFIG_BITS
+} config_t;
 
 typedef struct {
 	uint16_t year;

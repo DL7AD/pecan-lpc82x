@@ -60,7 +60,7 @@ int main(void)
 	// only waked up by the reset pin which is (as mentioned before) disabled.
 	delay(3000); // !!! IMPORTANT IMPORTANT IMPORTANT !!! DO NOT REMOVE THIS DELAY UNDER ANY CIRCUMSTANCES !!!
 
-	trackingstate_t trackingstate = LOG; // Initially LOG
+	trackingstate_t trackingstate = TRANSMIT_CONFIG;
 	gpsstate_t gpsstate = GPS_LOSS;
 
 	track_t trackPoint;
@@ -212,6 +212,22 @@ int main(void)
 					trackingstate = SWITCH_ON_GPS;
 				}
 
+				break;
+
+			case TRANSMIT_CONFIG:
+				transmit_telemetry_configuration(CONFIG_PARM);
+				power_save(6000);
+
+				transmit_telemetry_configuration(CONFIG_UNIT);
+				power_save(6000);
+
+				transmit_telemetry_configuration(CONFIG_EQNS);
+				power_save(6000);
+
+				transmit_telemetry_configuration(CONFIG_BITS);
+				power_save(6000);
+
+				trackingstate = LOG;
 				break;
 
 			default: // It should actually never reach this state

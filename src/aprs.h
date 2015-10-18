@@ -24,6 +24,7 @@
 
 void transmit_telemetry(track_t *trackPoint);
 void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course, uint16_t speed);
+void transmit_telemetry_configuration(config_t type);
 #if LOG_SIZE
 void transmit_log(track_t *trackPoint);
 #endif

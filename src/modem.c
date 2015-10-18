@@ -57,10 +57,10 @@ const uint8_t sine_table[512] = {
 
 // Module globals
 static uint16_t current_byte;
-static uint16_t current_sample_in_baud;    // 1 bit = SAMPLES_PER_BAUD samples
-static uint32_t phase_delta;                // 1200/2200 for standard AX.25
-static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
-static uint32_t packet_pos;                 // Next bit to be sent out
+static uint16_t current_sample_in_baud;		// 1 bit = SAMPLES_PER_BAUD samples
+static uint32_t phase_delta;				// 1200/2200 for standard AX.25
+static uint32_t phase;						// Fixed point 9.7 (2PI = TABLE_SIZE)
+static uint32_t packet_pos;					// Next bit to be sent out
 static bool modem_busy = false;				// Is timer running
 
 // Exported globals

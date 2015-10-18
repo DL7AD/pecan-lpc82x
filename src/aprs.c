@@ -37,13 +37,13 @@ static char temp[22];
 
 const s_address_t addresses[] =
 { 
-	{D_CALLSIGN, D_CALLSIGN_ID},  // Destination callsign
-	{S_CALLSIGN, S_CALLSIGN_ID},  // Source callsign (-11 = balloon, -9 = car)
+	{D_CALLSIGN, D_CALLSIGN_ID},	// Destination callsign
+	{S_CALLSIGN, S_CALLSIGN_ID},	// Source callsign (-11 = balloon, -9 = car)
 	#ifdef DIGI_PATH1
-	{DIGI_PATH1, DIGI_PATH1_TTL}, // Digi1 (first digi in the chain)
+	{DIGI_PATH1, DIGI_PATH1_TTL},	// Digi1 (first digi in the chain)
 	#endif
 	#ifdef DIGI_PATH2
-	{DIGI_PATH2, DIGI_PATH2_TTL}, // Digi2 (second digi in the chain)
+	{DIGI_PATH2, DIGI_PATH2_TTL},	// Digi2 (second digi in the chain)
 	#endif
 };
 
@@ -60,7 +60,7 @@ const s_address_t addresses[] =
  */
 void transmit_telemetry(track_t *trackPoint)
 {
-	// Encode telemetry header
+	// Encode APRS header
 	ax25_send_header(addresses, sizeof(addresses)/sizeof(s_address_t));
 	ax25_send_string("T#");
 	ax25_send_string(fitoa(trackPoint->id % 255, temp, 3));
@@ -218,7 +218,7 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 #if LOG_SIZE
 void transmit_log(track_t *trackPoint)
 {
-	// Encode telemetry header
+	// Encode APRS header
 	ax25_send_header(addresses, sizeof(addresses)/sizeof(s_address_t));
 	ax25_send_string("{{L");
 
@@ -238,6 +238,46 @@ void transmit_log(track_t *trackPoint)
 	ax25_flush_frame();
 }
 #endif
+
+/**
+ * Transmit APRS telemetry configuration
+ */
+void transmit_telemetry_configuration(config_t type)
+{
+	ax25_send_header(addresses, sizeof(addresses)/sizeof(s_address_t)); // Header
+	ax25_send_byte(':'); // Message flag
+
+	// Callsign
+	ax25_send_string(S_CALLSIGN);
+	ax25_send_byte('-');
+	ax25_send_string(itoa(S_CALLSIGN_ID, temp, 10));
+
+	ax25_send_string(" :"); // Message separator
+
+	switch(type) {
+		case CONFIG_PARM:
+			ax25_send_string("PARM.Batt,Temp,Alt,Solar,TTFF,GPSLOSS3,GPSLOSS2,GPSLOSS1,GPSLOSS0,EW,NS,GPS,ISS");
+			break;
+		case CONFIG_UNIT:
+			ax25_send_string("UNIT.mV,degC,feet,mV,sec,NA,NA,NA,NA,E,N,ON,visible");
+			break;
+		case CONFIG_EQNS:
+			ax25_send_string(
+				"EQNS."
+				"0,.01,2,"
+				"0,1,-100,"
+				"0,1000,0,"
+				"0,8,0,"
+				"0,1,0");
+			break;
+		case CONFIG_BITS:
+			ax25_send_string("BITS.11111111,Pecan Balloon");
+			break;
+	}
+
+	ax25_send_footer(); // Footer
+	ax25_flush_frame(); // Transmit
+}
 
 /**
  * Formatted itoa
