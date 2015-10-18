@@ -60,9 +60,10 @@ uint32_t getADC(uint8_t ad)
 		// Retrieve sampled data
 		gdat = Chip_ADC_GetDataReg(LPC_ADC, ad);
 
-		if(i++ > 1000)
+		if(i++ > 100)
 			return 0; // It took too long to sample the data
+		delay(1);
 	}
 
-	return (gdat & ADC_SEQ_GDAT_RESULT_MASK) >> ADC_SEQ_GDAT_RESULT_BITPOS; // Cut out 12bit value
+	return ADC_DR_RESULT(gdat);
 }
