@@ -73,12 +73,20 @@ const uint8_t UBX_SET_NMEA[] = {
 };
 
 const uint8_t UBX_AIRBORNE_MODEL[] = {
-	0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF,
-	0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
-	0x00, 0x00, 0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00,
-	0x64, 0x00, 0x2C, 0x01, 0x00, 0x3C, 0x00, 0x00,
-	0x00, 0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x1A, 0x28
+	// This sentence probably only works with EVA-M8M modules
+	// 0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF,
+	// 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27,
+	// 0x00, 0x00, 0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00,
+	// 0x64, 0x00, 0x2C, 0x01, 0x00, 0x3C, 0x00, 0x00,
+	// 0x00, 0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00,
+	// 0x00, 0x00, 0x1A, 0x28
+
+	// This sentence only works with EVA-7M modules
+	0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x06,
+	0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00,
+	0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C,
+	0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0xDC
 };
 
 const uint8_t UBX_CONFIGURE_POWERSAVE[] = {
@@ -360,10 +368,10 @@ void GPS_PowerOn(void) {
 	gps_hw_switch(true);					// Power up GPS
 	delay(3000);							// Wait for GPS to boot
 
-//	gps_set_nmeaCompatibility();			// Configure compatibility mode, this must be done because the code assumes specific NMEA parameter lengths
-//	delay(100);
-	gps_set_gps_only();						// Switch off GLONASS, Baidoo, QZSS, Galileo
-	delay(100);
+	// Switching off other GNSS not necessary because EVA-7M can receive GPS only
+	// gps_set_gps_only();						// Switch off GLONASS, Baidoo, QZSS, Galileo
+	// delay(100);
+
 	gps_configureActiveNMEASentences();		// Switch off unnecessary NMEA sentences (only GPRMC and GPGGA needed)
 	delay(100);
 	gps_set_airborne_model();				// Switch to airborne model (activates GPS support over 12km altitude)
@@ -375,24 +383,32 @@ void GPS_PowerOn(void) {
 	isOn = true;
 }
 
-void gps_set_nmeaCompatibility()
-{
-	UART_TxString(UBX_SET_NMEA, sizeof(UBX_SET_NMEA));
-}
-
 void gps_set_gps_only()
 {
-	UART_TxString(UBX_GPS_ONLY, sizeof(UBX_GPS_ONLY));
+	for(uint32_t i=0; i<sizeof(UBX_GPS_ONLY); i++)
+	{
+		UART_TxByte(UBX_GPS_ONLY[i]);
+		delay(10);
+	}
 }
 
 void gps_set_airborne_model()
 {
-	UART_TxString(UBX_AIRBORNE_MODEL, sizeof(UBX_AIRBORNE_MODEL));
+	for(uint32_t i=0; i<sizeof(UBX_AIRBORNE_MODEL); i++)
+	{
+		UART_TxByte(UBX_AIRBORNE_MODEL[i]);
+		delay(10);
+	}
+
 }
 
 void gps_configure_power_save()
 {
-	UART_TxString(UBX_CONFIGURE_POWERSAVE, sizeof(UBX_CONFIGURE_POWERSAVE));
+	for(uint32_t i=0; i<sizeof(UBX_CONFIGURE_POWERSAVE); i++)
+	{
+		UART_TxByte(UBX_CONFIGURE_POWERSAVE[i]);
+		delay(10);
+	}
 }
 
 /**
@@ -402,19 +418,43 @@ void gps_configure_power_save()
  */
 void gps_activate_power_save()
 {
-	UART_TxString(UBX_SWITCH_POWERSAVE_ON, sizeof(UBX_SWITCH_POWERSAVE_ON));
+	for(uint32_t i=0; i<sizeof(UBX_SWITCH_POWERSAVE_ON); i++)
+	{
+		UART_TxByte(UBX_SWITCH_POWERSAVE_ON[i]);
+		delay(10);
+	}
 }
 
 void gps_disable_power_save()
 {
-	UART_TxString(UBX_SWITCH_POWERSAVE_OFF, sizeof(UBX_SWITCH_POWERSAVE_OFF));
+	for(uint32_t i=0; i<sizeof(UBX_SWITCH_POWERSAVE_OFF); i++)
+	{
+		UART_TxByte(UBX_SWITCH_POWERSAVE_OFF[i]);
+		delay(10);
+	}
 }
 
 void gps_configureActiveNMEASentences() {
-	UART_TxString(UBX_SETGLLOFF, sizeof(UBX_SETGLLOFF));
-	UART_TxString(UBX_SETGSAOFF, sizeof(UBX_SETGSAOFF));
-	UART_TxString(UBX_SETGSVOFF, sizeof(UBX_SETGSVOFF));
-	UART_TxString(UBX_SETVTGOFF, sizeof(UBX_SETVTGOFF));
+	for(uint32_t i=0; i<sizeof(UBX_SETGLLOFF); i++)
+	{
+		UART_TxByte(UBX_SETGLLOFF[i]);
+		delay(10);
+	}
+	for(uint32_t i=0; i<sizeof(UBX_SETGSAOFF); i++)
+	{
+		UART_TxByte(UBX_SETGSAOFF[i]);
+		delay(10);
+	}
+	for(uint32_t i=0; i<sizeof(UBX_SETGSVOFF); i++)
+	{
+		UART_TxByte(UBX_SETGSVOFF[i]);
+		delay(10);
+	}
+	for(uint32_t i=0; i<sizeof(UBX_SETVTGOFF); i++)
+	{
+		UART_TxByte(UBX_SETVTGOFF[i]);
+		delay(10);
+	}
 }
 
 /**
