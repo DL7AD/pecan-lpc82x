@@ -46,19 +46,23 @@ void power_save()
 
 int main(void)
 {
-	SystemCoreClockUpdate();
-	Chip_GPIO_Init(LPC_GPIO_PORT);
+	//Chip_Clock_SetMainClockSource(SYSCTL_MAINCLKSRC_IRC);	// Change main clock source to IRC
+	//LPC_SYSCTL->PDRUNCFG |= (1 << 7);						// Power down PLL
+	SystemCoreClockUpdate();								// Update system clock variable
+	Chip_GPIO_Init(LPC_GPIO_PORT);							// Enable GPIO clock
 
-	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM); // Enable clock to switch matrix so we can configure the matrix
-	Chip_SWM_DisableFixedPin(SWM_FIXED_CLKIN); // LPC824 needs the fixed pin ACMP2 pin disabled to use pin as gpio
-	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM); // Turn clock to switch matrix back off to save power
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);			// Enable clock to switch matrix so we can configure the matrix
+	Chip_SWM_DisableFixedPin(SWM_FIXED_CLKIN);				// LPC824 needs the fixed pin ACMP2 pin disabled to use pin as GPIO
+	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);		// Turn clock to switch matrix back off to save power
 
-	SysTick_Config(SystemCoreClock / 1000); // Configure 1ms tick timer
+	SysTick_Config(SystemCoreClock / 1000);					// Configure 1ms tick timer
 
 	// This delay is necessary to get access again after module fell into a deep sleep state in which the reset pin is disabled !!!
 	// To get access again, its necessary to access the chip in active mode. If chip is almost every time in sleep mode, it can be
 	// only waked up by the reset pin which is (as mentioned before) disabled.
 	delay(3000); // !!! IMPORTANT IMPORTANT IMPORTANT !!! DO NOT REMOVE THIS DELAY UNDER ANY CIRCUMSTANCES !!!
+
+	// The actual program starts here
 
 	trackingstate_t trackingstate = TRANSMIT_CONFIG;
 	gpsstate_t gpsstate = GPS_LOSS;
