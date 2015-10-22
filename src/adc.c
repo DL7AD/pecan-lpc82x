@@ -2,6 +2,13 @@
 #include "adc.h"
 #include "time.h"
 
+// Conversion correction function
+// The sampled values have to be corrected if a 10k-10k voltage divider has
+// been used. This must be done while the ADC of the LPC824 has only an input
+// impedance of 100k. So there will be a ~9% misreading which must be fixed by
+// software.
+#define ADC_CORRECTION_10k(x) ((((x)*1129) >> 10) - 562)
+
 void ADC_Init(void) {
 	// Configure pins
 	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);
@@ -17,7 +24,7 @@ void ADC_Init(void) {
 	while(!Chip_ADC_IsCalibrationDone(LPC_ADC));
 
 	// Configure clock
-	Chip_ADC_SetClockRate(LPC_ADC, 1000); // Clock 1kHz
+	Chip_ADC_SetClockRate(LPC_ADC, 20000); // Clock 20kHz
 }
 
 void ADC_DeInit(void) {
@@ -31,7 +38,7 @@ void ADC_DeInit(void) {
 uint32_t getBatteryMV(void)
 {
 	uint32_t adc = getADC(ADC_BATT_CH);
-	return (adc * REF_MV) >> 11;		// Return battery voltage (voltage divider factor included)
+	return !adc ? 0 : ADC_CORRECTION_10k((adc * REF_MV) >> 11);	// Return battery voltage (voltage divider factor included)
 }
 
 /**
