@@ -22,7 +22,8 @@
 #define UART_BUFFERSIZE_TX			512					//!< Buffer für Transmit-FIFO
 #define UART_BUFFERSIZE_RX			512					//!< Buffer für Receive-FIFO
 
-bool	UART_Init(void);
+bool UART_Init(void);
+void UART_DeInit(void);
 
 void UART0_IRQHandler(void);
 bool UART_TxByte(uint8_t Data);

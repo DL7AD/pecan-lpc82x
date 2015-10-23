@@ -163,6 +163,12 @@ bool result = true;										// Optimist
 
 	return result;
 }
+
+void UART_DeInit(void)
+{
+	// TODO
+}
+
 /**************************************************************************//**
  * @brief		Legt Datenbyte in FIFO, löst Senden aus
  *
