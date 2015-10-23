@@ -42,7 +42,7 @@
 #define TX_DELAY			60
 
 
-#define TIME_SLEEP_CYCLE	300
+#define TIME_SLEEP_CYCLE	120
 #define TIME_MAX_GPS_SEARCH	120
 
 // Radio power:				Radio power (for Si4063 @ VCC=2500mV)
@@ -54,7 +54,7 @@
 //							Range 1-127
 //							127 ~ 10mW
 //							20  ~ 1mW
-#define RADIO_POWER			5
+#define RADIO_POWER			50
 
 // Logging size:
 #define LOG_SIZE			0		// Log size (Set to 0 to disable log function)
@@ -80,7 +80,7 @@
 //							the accumulator healthy
 // 2. LiPo					LiPo GPS will be kept off below 3000mV, no transmission is made below 2500mV to keep the
 //							accumulator healthy
-#define BATTERY_TYPE		PRIMARY
+#define BATTERY_TYPE		LiPo
 
 // Solar feed available
 #define SOLAR_AVAIL
