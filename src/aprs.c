@@ -27,7 +27,6 @@
 #include <math.h>
 #include "base64.h"
 #include "time.h"
-//#include "small_printf_code.h"
 
 #define METER_TO_FEET(m) (((m)*26876) / 8192)
 
@@ -125,7 +124,7 @@ void transmit_telemetry(track_t *trackPoint)
  */
 void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course, uint16_t speed)
 {
-	date_t date = unixTimestamp2Date(trackPoint->time * 1000);
+	date_t date = unixTimestamp2Date(((uint64_t)trackPoint->time) * 1000);
 
 	ax25_send_header(addresses, sizeof(addresses)/sizeof(s_address_t));
 	ax25_send_byte('/');                // Report w/ timestamp, no APRS messaging. $ = NMEA raw data
@@ -259,7 +258,7 @@ void transmit_telemetry_configuration(config_t type)
 			ax25_send_string("PARM.Batt,Temp,Alt,Solar,TTFF,GPSLOSS3,GPSLOSS2,GPSLOSS1,GPSLOSS0,EW,NS,GPS,ISS");
 			break;
 		case CONFIG_UNIT:
-			ax25_send_string("UNIT.mV,degC,feet,mV,sec,NA,NA,NA,NA,E,N,ON,visible");
+			ax25_send_string("UNIT.Volt,degC,feet,Volt,sec,NA,NA,NA,NA,E,N,ON,visible");
 			break;
 		case CONFIG_EQNS:
 			ax25_send_string(
@@ -267,7 +266,7 @@ void transmit_telemetry_configuration(config_t type)
 				"0,.01,2,"
 				"0,1,-100,"
 				"0,1000,0,"
-				"0,8,0,"
+				"0,.01,0,"
 				"0,1,0");
 			break;
 		case CONFIG_BITS:
