@@ -193,6 +193,7 @@ void stopTx(void) {
 void radioShutdown(void) {
 	RADIO_LED_SET(false);	// Switch off LED
 	RADIO_SDN_SET(true);	// Power down chip
+	RF_GPIO_SET(false);		// Set GPIO1 low
 	SPI_DeInit();			// Power down SPI
 }
 
