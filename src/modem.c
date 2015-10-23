@@ -46,7 +46,7 @@ const uint8_t sine_table[512] = {
  * PHASE_DELTA_Fg = Tt*(Fg/Fm)
  */
 
-#define TX_CPU_CLOCK		6000000
+#define TX_CPU_CLOCK		12000000
 #define TABLE_SIZE			sizeof(sine_table)
 #define PLAYBACK_RATE		(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
 #define BAUD_RATE			1200
