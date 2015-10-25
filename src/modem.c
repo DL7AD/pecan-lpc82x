@@ -78,14 +78,14 @@ void modem_flush_frame(void) {
 
 	if(gpsIsOn())
 		GPS_hibernate_uart();				// Hibernate UART because it would interrupt the modulation
-	setClockMaxPerformance();				// Set clocking to max performance (24MHz)
 	Modem_Init();							// Initialize timers and radio
+	setClockMaxPerformance();				// Set clocking to max performance (24MHz)
 
 	while(modem_busy)						// Wait for radio getting finished
 		__WFI();
 
-	radioShutdown();						// Shutdown radio
 	setClockPowerSave();					// Return to power save mode (1MHz)
+	radioShutdown();						// Shutdown radio
 	if(gpsIsOn())
 		GPS_wake_uart();					// Init UART again to continue GPS decoding
 }
