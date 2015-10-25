@@ -54,7 +54,7 @@
 //							Range 1-127
 //							127 ~ 10mW
 //							20  ~ 1mW
-#define RADIO_POWER_APRS	50
+#define RADIO_POWER_APRS	1
 
 // Logging size:
 #define LOG_SIZE			0		// Log size (Set to 0 to disable log function)
@@ -63,7 +63,9 @@
 
 #define VOLTAGE_NOCW		4000
 #define RADIO_FREQUENCY_CW	144310000
-#define RADIO_POWER_CW		20
+#define RADIO_POWER_CW		1
+
+#define USE_COMPRESSED_APRS
 
 /* ============================================== Target definitions =============================================== */
 /* ========================= Pecan Pico 6 specific (applicable only if Pecan Pico 6 used) ========================== */

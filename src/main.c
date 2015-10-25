@@ -56,8 +56,6 @@ int main(void)
 	Chip_SWM_DisableFixedPin(SWM_FIXED_CLKIN);				// LPC824 needs the fixed pin ACMP2 pin disabled to use pin as GPIO
 	Chip_Clock_DisablePeriphClock(SYSCTL_CLOCK_SWM);		// Turn clock to switch matrix back off to save power
 
-	SysTick_Config(SystemCoreClock / 1000);					// Configure 1ms tick timer
-
 	// This delay is necessary to get access again after module fell into a deep sleep state in which the reset pin is disabled !!!
 	// To get access again, its necessary to access the chip in active mode. If chip is almost every time in sleep mode, it can be
 	// only waked up by the reset pin which is (as mentioned before) disabled.
@@ -192,9 +190,9 @@ int main(void)
 				trackPoint.satellites = lastFix.satellites;
 				trackPoint.ttff = lastFix.ttff;
 
-				trackPoint.vbat = VBAT_TO_EIGHTBIT(batt_voltage);
+				trackPoint.vbat = batt_voltage;
 				#ifdef SOLAR_AVAIL
-				trackPoint.vsol = VSOL_TO_EIGHTBIT(sol_voltage);
+				trackPoint.vsol = sol_voltage;
 				#else
 				trackPoint.vsol = 0;
 				#endif
@@ -216,12 +214,6 @@ int main(void)
 			case TRANSMIT:
 				// Mark timestamp for sleep routine (which will probably follow after this state)
 				timestampPointer = getUnixTimestamp();
-
-				// Transmit APRS telemetry
-				transmit_telemetry(&trackPoint);
-
-				// Wait a few seconds (Else aprs.fi reports "[Rate limited (< 5 sec)]")
-				power_save(6000);
 
 				// Transmit APRS position
 				transmit_position(&trackPoint, gpsstate, lastFix.course, lastFix.speed);

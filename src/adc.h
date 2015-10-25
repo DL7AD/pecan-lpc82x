@@ -20,12 +20,6 @@
 
 #include "types.h"
 
-// Conversion voltages to compressed 8bit-formats (Unit: mV)
-#define VBAT_TO_EIGHTBIT(x) (((x)-2000)/10)
-#define VSOL_TO_EIGHTBIT(x) ((x)/10)
-#define EIGHTBIT_TO_VBAT(x) ((x)*10+2000)
-#define EIGHTBIT_TO_VSOL(x) ((x)*10)
-
 void ADC_Init(void);
 void ADC_DeInit(void);
 uint32_t getBatteryMV(void);

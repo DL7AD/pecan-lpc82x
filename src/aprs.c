@@ -47,72 +47,6 @@ const s_address_t addresses[] =
 };
 
 /**
- * Transmit APRS telemetry packet. The packet contain following values:
- * - Battery voltage in mV (has to be multiplied by 16, val=185 => 2960mV)
- * - Temperature in celcius (100 has to be subtracted, val=104 => 4 celcius)
- * - Altitude in feet (has to be multiplied by 1000, val=26 => 26000ft)
- * - Solar voltage in mV (has to be multiplied by 8, val=123 => 984mV)
- * - TTFF in seconds
- * Therafter is bitwise encoding:
- * - [7:4] Number of cycles where GPS has been lost
- * - [3:0] unused
- */
-void transmit_telemetry(track_t *trackPoint)
-{
-	// Encode APRS header
-	ax25_send_header(addresses, sizeof(addresses)/sizeof(s_address_t));
-	ax25_send_string("T#");
-	ax25_send_string(fitoa(trackPoint->id % 255, temp, 3));
-	ax25_send_byte(',');
-
-	// Encode battery voltage
-	ax25_send_string(fitoa(trackPoint->vbat, temp, 3));
-	ax25_send_byte(',');
-
-	// Encode temperature
-	ax25_send_string(fitoa(trackPoint->temp + 100, temp, 3));
-	ax25_send_byte(',');
-
-	// Encode altitude
-	uint32_t alt = METER_TO_FEET(trackPoint->altitude) / 1000;
-	ax25_send_string(fitoa(alt, temp, 3));
-	ax25_send_byte(',');
-
-	// Encode solar voltage
-	ax25_send_string(fitoa(trackPoint->vsol, temp, 3));
-	ax25_send_byte(',');
-
-	// Encode TTFF (time to first fix in seconds)
-	ax25_send_string(fitoa(trackPoint->ttff, temp, 3));
-	ax25_send_byte(',');
-
-	// Encode bitwise
-	// [7:4] Number of cycles where GPS has been lost
-	// [3:0] unused
-
-	// Encode count of GPS losses
-	int z;
-	for (z = 8; z > 0; z >>= 1) {
-		if ((loss_of_gps_counter & z) == z) {
-			ax25_send_byte('1');
-		} else {
-			ax25_send_byte('0');
-		}
-	}
-
-	// Filling up unused bits
-	ax25_send_byte('0');
-	ax25_send_byte('0');
-	ax25_send_byte('0');
-	ax25_send_byte('0');
-
-	ax25_send_footer();
-
-	// Transmit
-	ax25_flush_frame();
-}
-
-/**
  * Transmit APRS position packet. The comments are filled with:
  * - Static comment (can be set in config.h)
  * - Battery voltage in mV
@@ -135,75 +69,104 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 	ax25_send_string(fitoa(date.second, temp, 2));
 	ax25_send_string("h");
 
-	uint16_t lat_degree = abs((int16_t)trackPoint->latitude);
-	uint32_t lat_decimal = abs((int32_t)(trackPoint->latitude*100000))%100000;
-	uint8_t lat_minute = lat_decimal * 6 / 10000;
-	uint8_t lat_minute_dec = (lat_decimal * 6 / 100) % 100;
-	ax25_send_string(fitoa(lat_degree, temp, 2));
-	ax25_send_string(fitoa(lat_minute, temp, 2));
-	ax25_send_byte('.');
-	ax25_send_string(fitoa(lat_minute_dec, temp, 2));
-	ax25_send_byte(trackPoint->latitude > 0 ? 'N' : 'S');
+	{
+		// Latitude precalculation
+		uint32_t y = 380926 * (90 - trackPoint->latitude);
+		uint32_t y3  = y   / 753571;
+		uint32_t y3r = y   % 753571;
+		uint32_t y2  = y3r / 8281;
+		uint32_t y2r = y3r % 8281;
+		uint32_t y1  = y2r / 91;
+		uint32_t y1r = y2r % 91;
 
-	ax25_send_byte(APRS_SYMBOL_TABLE); // Symbol table
+		// Longitude precalculation
+		uint32_t x = 190463 * (180 + trackPoint->longitude);
+		uint32_t x3  = x   / 753571;
+		uint32_t x3r = x   % 753571;
+		uint32_t x2  = x3r / 8281;
+		uint32_t x2r = x3r % 8281;
+		uint32_t x1  = x2r / 91;
+		uint32_t x1r = x2r % 91;
 
-	uint16_t lon_degree = abs((int16_t)trackPoint->longitude);
-	uint32_t lon_decimal = abs((int32_t)(trackPoint->longitude*100000))%100000;
-	uint8_t lon_minute = lon_decimal * 6 / 10000;
-	uint8_t lon_minute_dec = (lon_decimal * 6 / 100) % 100;
-	ax25_send_string(fitoa(lon_degree, temp, 3));
-	ax25_send_string(fitoa(lon_minute, temp, 2));
-	ax25_send_byte('.');
-	ax25_send_string(fitoa(lon_minute_dec, temp, 2));
-	ax25_send_byte(trackPoint->longitude > 0 ? 'E' : 'W');
+		// Altitude precalculation
+		uint32_t a = logf(METER_TO_FEET(trackPoint->altitude)) / logf(1.002f);
+		uint32_t a1  = a / 91;
+		uint32_t a1r = a % 91;
 
-	ax25_send_byte(APRS_SYMBOL_ID);                // Symbol: /O=balloon, /-=QTH, \N=buoy
+		uint8_t gpsFix = gpsstate == GPS_LOCK ? GSP_FIX_CURRENT : GSP_FIX_OLD;
+		uint8_t src = NMEA_SRC_GGA;
+		uint8_t origin = ORIGIN_PICO;
 
-	ax25_send_string(fitoa(course, temp, 3));             // Course (degrees)
-	ax25_send_byte('/');                // and
-	ax25_send_string(fitoa(speed, temp, 3));		// speed (knots)
+		temp[0]  = APRS_SYMBOL_TABLE;
+		temp[1]  = y3+33;
+		temp[2]  = y2+33;
+		temp[3]  = y1+33;
+		temp[4]  = y1r+33;
+		temp[5]  = x3+33;
+		temp[6]  = x2+33;
+		temp[7]  = x1+33;
+		temp[8]  = x1r+33;
+		temp[9]  = APRS_SYMBOL_ID;
+		temp[10] = a1+33;
+		temp[11] = a1r+33;
+		temp[12] = ((gpsFix << 5) | (src << 3) | origin) + 33;
+		temp[13] = 0;
 
-	ax25_send_string("/A=");            // Altitude (feet). Goes anywhere in the comment area
-	ax25_send_string(fitoa(METER_TO_FEET(trackPoint->altitude), temp, 6));
+		ax25_send_string(temp);
+	};
+	{
+		temp[2] = 0;
 
-	ax25_send_byte(' ');
+		ax25_send_string("|");
 
-	uint16_t vbat = EIGHTBIT_TO_VBAT(trackPoint->vbat);
-	ax25_send_string(itoa(vbat/1000, temp, 10));
-	ax25_send_byte('.');
-	ax25_send_string(fitoa((vbat%1000)/10, temp, 2));
-	ax25_send_string("Vb ");
+		// Sequence ID
+		uint32_t t = trackPoint->id & 0x1FFF;
+		temp[0] = t/91 + 33;
+		temp[1] = t%91 + 33;
+		ax25_send_string(temp);
 
+		// Battery voltage
+		t = trackPoint->vbat;
+		temp[0] = t/91 + 33;
+		temp[1] = t%91 + 33;
+		ax25_send_string(temp);
 
-	#ifdef SOLAR_AVAIL
-	uint16_t vsol = EIGHTBIT_TO_VSOL(trackPoint->vsol);
-	ax25_send_string(itoa(vsol/1000, temp, 10));
-	ax25_send_byte('.');
-	ax25_send_string(fitoa((vsol%1000)/10, temp, 2));
-	ax25_send_string("Vs ");
-	#endif
+		// Solar voltage
+		t = trackPoint->vsol;
+		temp[0] = t/91 + 33;
+		temp[1] = t%91 + 33;
+		ax25_send_string(temp);
 
-	ax25_send_string(itoa(trackPoint->temp, temp, 10));
-	ax25_send_string("C ");
+		// Temperature
+		t = trackPoint->temp + 128;
+		temp[0] = t/91 + 33;
+		temp[1] = t%91 + 33;
+		ax25_send_string(temp);
 
-	ax25_send_string("SATS");
-	ax25_send_string(fitoa(trackPoint->satellites, temp, 2));
+		// Sats
+		t = trackPoint->satellites;
+		temp[0] = t/91 + 33;
+		temp[1] = t%91 + 33;
+		ax25_send_string(temp);
 
-	#ifdef APRS_COMMENT
-	ax25_send_byte(' ');
-	ax25_send_string(APRS_COMMENT); // Comment
-	#endif
-
-	if(gpsstate != GPS_LOCK) {
-		if(loss_of_gps_counter >= 5) { // GPS lost 3 times (6min if cycle = 2min) TODO: This is actually not a task of APRS encoding
-			loss_of_gps_counter = 0;
+		// GPS Loss counter
+		if(gpsstate != GPS_LOCK)
+		{
+			if(loss_of_gps_counter >= 8191) // GPS lost 3 times (6min if cycle = 2min) TODO: This is actually not a task of APRS encoding
+				loss_of_gps_counter = 0;
+			loss_of_gps_counter++;
 		}
-		loss_of_gps_counter++;
-		ax25_send_string(" GPS loss ");
-		ax25_send_string(fitoa(loss_of_gps_counter, temp, 2));
-	} else {
-		loss_of_gps_counter = 0;
-	}
+
+		if(loss_of_gps_counter)
+		{
+			t = loss_of_gps_counter;
+			temp[0] = t/91 + 33;
+			temp[1] = t%91 + 33;
+			ax25_send_string(temp);
+		}
+
+		ax25_send_byte('|');
+	};
 
 	ax25_send_footer();
 
@@ -255,19 +218,20 @@ void transmit_telemetry_configuration(config_t type)
 
 	switch(type) {
 		case CONFIG_PARM:
-			ax25_send_string("PARM.Batt,Temp,Alt,Solar,TTFF,GPSLOSS3,GPSLOSS2,GPSLOSS1,GPSLOSS0,EW,NS,GPS,ISS");
+			ax25_send_string("PARM.Battery,Solar,Temp,Sats,TTFF");
 			break;
 		case CONFIG_UNIT:
-			ax25_send_string("UNIT.Volt,degC,feet,Volt,sec,NA,NA,NA,NA,E,N,ON,visible");
+			ax25_send_string("UNIT.Volt,Volt,degC,,sec");
 			break;
 		case CONFIG_EQNS:
 			ax25_send_string(
 				"EQNS."
-				"0,.01,2,"
-				"0,1,-100,"
-				"0,1000,0,"
-				"0,.01,0,"
-				"0,1,0");
+				"0,.001,0,"
+				"0,.001,0,"
+				"0,1,-128,"
+				"0,1,0,"
+				"0,1,0"
+			);
 			break;
 		case CONFIG_BITS:
 			ax25_send_string("BITS.11111111,Pecan Balloon");

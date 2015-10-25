@@ -20,8 +20,8 @@ typedef struct {
 	uint16_t altitude;
 	uint8_t satellites;
 	uint8_t ttff;
-	uint8_t vbat;
-	uint8_t vsol;
+	uint16_t vbat;
+	uint16_t vsol;
 	int8_t temp;
 	uint32_t pressure;
 } track_t;
