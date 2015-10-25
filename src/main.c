@@ -15,6 +15,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include "chip.h"
 #include "aprs.h"
 #include "ax25.h"
 #include "config.h"
@@ -25,7 +26,7 @@
 #include "debug.h"
 #include "adc.h"
 #include "time.h"
-#include "chip.h"
+#include "clock.h"
 
 /**
  * Enter power save mode for 8 seconds. Power save is disabled and replaced by
@@ -46,9 +47,7 @@ void power_save()
 
 int main(void)
 {
-	//Chip_Clock_SetMainClockSource(SYSCTL_MAINCLKSRC_IRC);	// Change main clock source to IRC
-	//LPC_SYSCTL->PDRUNCFG |= (1 << 7);						// Power down PLL
-	SystemCoreClockUpdate();								// Update system clock variable
+	setClockPowerSave();									// Setup power save clocking
 	Chip_GPIO_Init(LPC_GPIO_PORT);							// Enable GPIO clock
 
 	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SWM);			// Enable clock to switch matrix so we can configure the matrix

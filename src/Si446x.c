@@ -10,7 +10,6 @@
 #include "spi.h"
 #include "time.h"
 
-#define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN, Select)
 #define RADIO_SDN_SET(Select) Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select);
 #define RADIO_LED_SET(Select) Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_RADIO, !Select);
 
@@ -213,10 +212,6 @@ void radioTune(uint32_t frequency, uint8_t level) {
 	setPowerLevel(level);				// Power level
 
 	startTx();
-}
-
-void setGPIO(bool s) {
-	RF_GPIO_SET(s);
 }
 
 int8_t Si446x_getTemperature(void) {

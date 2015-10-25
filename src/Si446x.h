@@ -11,6 +11,8 @@
 #define POWER_17DBM		40
 #define POWER_20DBM		127
 
+#define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN, Select)
+
 bool Si446x_Init(void);
 void Si446x_write(uint16_t* txData, uint32_t len);
 void sendFrequencyToSi446x(uint32_t freq);
@@ -21,7 +23,6 @@ void startTx(void);
 void stopTx(void);
 void radioShutdown(void);
 void radioTune(uint32_t frequency, uint8_t level);
-void setGPIO(bool s);
 int8_t Si446x_getTemperature(void);
 
 #endif

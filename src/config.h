@@ -54,7 +54,7 @@
 //							Range 1-127
 //							127 ~ 10mW
 //							20  ~ 1mW
-#define RADIO_POWER			50
+#define RADIO_POWER			1
 
 // Logging size:
 #define LOG_SIZE			0		// Log size (Set to 0 to disable log function)
@@ -92,7 +92,7 @@
 #define OSC_FREQ			26000000			// Oscillator frequency
 
 #define UART_RXD_PIN		0					// GPS TXD pin
-#define UART_TXD_PIN		14					// GPS RXD pin
+#define UART_TXD_PIN		28					// GPS RXD pin
 
 #define ADC_BATT_PIN		SWM_FIXED_ADC11		// ADC battery (connected to voltage divider, factor 0.5)
 #define ADC_BATT_CH			11					// ADC channel battery (connected to voltage divider, factor 0.5)
