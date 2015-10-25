@@ -2,7 +2,6 @@
 #define __SI406X__H__
 
 #include "types.h"
-#include "Si446x.h"
 
 #define POWER_0DBM		6
 #define POWER_8DBM		16
@@ -13,10 +12,11 @@
 
 #define RF_GPIO_SET(Select)	Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_GPIO_PIN, Select)
 
-bool Si446x_Init(void);
+void Si446x_Init(modem_t modem_type);
 void Si446x_write(uint16_t* txData, uint32_t len);
 void sendFrequencyToSi446x(uint32_t freq);
-void setModem();
+void setModemAFSK(void);
+void setModemCW(void);
 void setDeviation(uint32_t deviation);
 void setPowerLevel(uint8_t level);
 void startTx(void);

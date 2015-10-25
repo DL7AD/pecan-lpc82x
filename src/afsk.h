@@ -25,7 +25,7 @@
 extern uint8_t modem_packet[MODEM_MAX_PACKET];  // Upper layer data
 extern uint16_t modem_packet_size;              // in bits
 
-void Modem_Init(void);
+void AFSK_Init(void);
 void modem_start(void);
 void modem_flush_frame(void);
 void On_Sample_Handler(void);

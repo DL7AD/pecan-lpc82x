@@ -20,13 +20,15 @@
 #include "ax25.h"
 #include "config.h"
 #include "gps.h"
-#include "modem.h"
 #include "Si446x.h"
 #include "uart.h"
 #include "debug.h"
 #include "adc.h"
+#include "afsk.h"
 #include "time.h"
 #include "clock.h"
+#include "cw.h"
+#include <stdlib.h>
 
 /**
  * Enter power save mode for 8 seconds. Power save is disabled and replaced by
@@ -63,7 +65,7 @@ int main(void)
 
 	// The actual program starts here
 
-	trackingstate_t trackingstate = TRANSMIT_CONFIG;
+	trackingstate_t trackingstate = SLEEP;
 	gpsstate_t gpsstate = GPS_LOSS;
 
 	track_t trackPoint;
@@ -97,11 +99,35 @@ int main(void)
 				if(batt_voltage < VOLTAGE_NOGPS && gpsIsOn()) // Tracker has low battery, so switch off GPS
 					GPS_PowerOff();
 
+				if(batt_voltage > VOLTAGE_NOCW)
+					trackingstate = TRANSMIT_CW;
+
 				if(getUnixTimestamp()-timestampPointer >= TIME_SLEEP_CYCLE*1000) {
 					trackingstate = SWITCH_ON_GPS;
 					continue;
 				}
+
 				power_save();
+				break;
+
+			case TRANSMIT_CW:
+				CW_Init();
+
+				CW_transmit("BALLOON ");
+				CW_transmit(S_CALLSIGN);
+
+				char m[7];
+				CW_transmit("  ");
+				positionToMaidenhead(lastFix.latitude, lastFix.longitude, m);
+				CW_transmit(m);
+
+				CW_transmit(" ALT ");
+				CW_transmit(itoa(lastFix.altitude, m, 10));
+				CW_transmit("M");
+
+				CW_DeInit();
+
+				trackingstate = SLEEP;
 				break;
 
 			case SWITCH_ON_GPS:
@@ -173,7 +199,7 @@ int main(void)
 				trackPoint.vsol = 0;
 				#endif
 
-				Si446x_Init();
+				Si446x_Init(MODEM_NONE);
 				trackPoint.temp = Si446x_getTemperature();
 				radioShutdown();
 

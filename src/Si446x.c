@@ -9,6 +9,7 @@
 #include "chip.h"
 #include "spi.h"
 #include "time.h"
+#include "types.h"
 
 #define RADIO_SDN_SET(Select) Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, RADIO_SDN_PIN, Select);
 #define RADIO_LED_SET(Select) Chip_GPIO_SetPinState(LPC_GPIO_PORT, 0, LED_RADIO, !Select);
@@ -18,7 +19,7 @@
  * oscillator voltage.
  * @param mv Oscillator voltage in mv
  */
-bool Si446x_Init(void) {
+void Si446x_Init(modem_t modem_type) {
 	// Initialize SPI
 	SPI_Init();
 
@@ -52,10 +53,18 @@ bool Si446x_Init(void) {
 	};
 	Si446x_write(gpio_pin_cfg_command, 8);
 
-	// Set misc configuration
-	setModem();
-
-	return true;
+	// Set modem
+	switch(modem_type)
+	{
+		case MODEM_AFSK:
+			setModemAFSK();
+			break;
+		case MODEM_CW:
+			setModemCW();
+			break;
+		case MODEM_NONE:
+			break;
+	}
 }
 
 void Si446x_write(uint16_t* txData, uint32_t len) {
@@ -136,7 +145,7 @@ void sendFrequencyToSi446x(uint32_t freq) {
 	Si446x_write(set_deviation, 7);
 }
 
-void setModem() {
+void setModemAFSK(void) {
 	// Disable preamble
 	uint16_t disable_preamble[] = {0x11, 0x10, 0x01, 0x00, 0x00};
 	Si446x_write(disable_preamble, 5);
@@ -169,6 +178,12 @@ void setModem() {
 		uint16_t msg[] = {0x11, 0x20, 0x01, 0x17-i, coeff[i]};
 		Si446x_write(msg, 5);
 	}
+}
+
+void setModemCW(void) {
+	// use 2GFSK from async GPIO1
+	uint16_t use_cw[] = {0x11, 0x20, 0x01, 0x00, 0xA9};
+	Si446x_write(use_cw, 5);
 }
 
 void setPowerLevel(uint8_t level) {

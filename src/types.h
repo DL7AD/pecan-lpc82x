@@ -32,7 +32,8 @@ typedef enum {
 	SEARCH_GPS,				// Search for GPS
 	LOG,					// Log data packet
 	TRANSMIT,				// Transmit telemetry and position
-	TRANSMIT_CONFIG			// Transmit telemetry configuration
+	TRANSMIT_CONFIG,		// Transmit telemetry configuration
+	TRANSMIT_CW				// Transmit CW (position)
 } trackingstate_t;
 
 typedef enum {
@@ -56,5 +57,11 @@ typedef struct {
 	uint8_t minute;
 	uint8_t second;
 } date_t;
+
+typedef enum {
+	MODEM_NONE,
+	MODEM_AFSK,
+	MODEM_CW
+} modem_t;
 
 #endif

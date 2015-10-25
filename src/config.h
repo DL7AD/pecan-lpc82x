@@ -54,12 +54,16 @@
 //							Range 1-127
 //							127 ~ 10mW
 //							20  ~ 1mW
-#define RADIO_POWER			1
+#define RADIO_POWER_APRS	50
 
 // Logging size:
 #define LOG_SIZE			0		// Log size (Set to 0 to disable log function)
 #define LOG_CYCLE_TIME		7200	// Log point sample cycle in seconds
 #define LOG_TRX_NUM			6		// Log messages that are transmitted in one packet
+
+#define VOLTAGE_NOCW		4000
+#define RADIO_FREQUENCY_CW	144310000
+#define RADIO_POWER_CW		20
 
 /* ============================================== Target definitions =============================================== */
 /* ========================= Pecan Pico 6 specific (applicable only if Pecan Pico 6 used) ========================== */

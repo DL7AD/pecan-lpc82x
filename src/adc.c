@@ -25,6 +25,8 @@ void ADC_Init(void) {
 
 	// Configure clock
 	Chip_ADC_SetClockRate(LPC_ADC, 20000); // Clock 20kHz
+
+	delay(100);
 }
 
 void ADC_DeInit(void) {

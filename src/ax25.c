@@ -16,8 +16,9 @@
  */
 
 #include "ax25.h"
+
+#include "afsk.h"
 #include "config.h"
-#include "modem.h"
 
 // Module globals
 unsigned short int crc;

@@ -1,5 +1,6 @@
+#include "afsk.h"
+
 #include "config.h"
-#include "modem.h"
 #include "Si446x.h"
 #include "gps.h"
 #include "types.h"
@@ -20,7 +21,6 @@
  */
 
 #define TX_CPU_CLOCK		12000000
-//#define TABLE_SIZE			256
 #define PLAYBACK_RATE		(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
 #define BAUD_RATE			1200
 #define SAMPLES_PER_BAUD	(PLAYBACK_RATE / BAUD_RATE) // 52.083333333 / 26.041666667
@@ -40,20 +40,15 @@ volatile static bool modem_busy = false;	// Is timer running
 uint16_t modem_packet_size = 0;
 uint8_t modem_packet[MODEM_MAX_PACKET];
 
-/**
- * Initializes two timer
- * Timer 1: One Tick per 1/playback_rate	CT16B0
- * Timer 2: PWM								CT32B0
- */
-void Modem_Init(void)
+void AFSK_Init(void)
 {
 	Chip_GPIO_SetPinDIROutput(LPC_GPIO_PORT, 0, 28);
 
 	// Initialize radio
-	Si446x_Init();
+	Si446x_Init(MODEM_AFSK);
 
 	// Set radio power and frequency
-	radioTune(gps_get_region_frequency(), RADIO_POWER);
+	radioTune(gps_get_region_frequency(), RADIO_POWER_APRS);
 
 	// Setup sampling timer
 	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SCT);
@@ -78,7 +73,7 @@ void modem_flush_frame(void) {
 
 	if(gpsIsOn())
 		GPS_hibernate_uart();				// Hibernate UART because it would interrupt the modulation
-	Modem_Init();							// Initialize timers and radio
+	AFSK_Init();							// Initialize timers and radio
 	setClockMaxPerformance();				// Set clocking to max performance (24MHz)
 
 	while(modem_busy)						// Wait for radio getting finished
