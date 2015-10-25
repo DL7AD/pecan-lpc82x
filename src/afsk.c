@@ -8,12 +8,12 @@
 #include "chip.h"
 
 
-#define TX_CPU_CLOCK		12000000
-#define PLAYBACK_RATE		(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
-#define BAUD_RATE			1200
-#define SAMPLES_PER_BAUD	(PLAYBACK_RATE / BAUD_RATE) // 52.083333333 / 26.041666667
-#define PHASE_DELTA_1200	(((256 * 1200) << 7) / PLAYBACK_RATE) // Fixed point 9.7 // 1258 / 2516
-#define PHASE_DELTA_2200	(((256 * 2200) << 7) / PLAYBACK_RATE) // 2306 / 4613
+#define TX_CPU_CLOCK			((1865*(-10)) + 11955342)
+#define PLAYBACK_RATE			(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
+#define BAUD_RATE				1200
+#define SAMPLES_PER_BAUD		(PLAYBACK_RATE / BAUD_RATE) // 52.083333333 / 26.041666667
+#define PHASE_DELTA_1200		(39321600 / PLAYBACK_RATE) // Fixed point 9.7 // 1258 / 2516
+#define PHASE_DELTA_2200		(72089600 / PLAYBACK_RATE) // 2306 / 4613
 
 
 // Module globals
@@ -23,6 +23,7 @@ static uint32_t phase_delta;				// 1200/2200 for standard AX.25
 static uint32_t phase;						// Fixed point 9.7 (2PI = TABLE_SIZE)
 static uint32_t packet_pos;					// Next bit to be sent out
 volatile static bool modem_busy = false;	// Is timer running
+static int8_t temp;
 
 // Exported globals
 uint16_t modem_packet_size = 0;
@@ -34,6 +35,9 @@ void AFSK_Init(void)
 
 	// Initialize radio
 	Si446x_Init(MODEM_AFSK);
+
+	// Sample temperature
+	temp = Si446x_getTemperature();
 
 	// Set radio power and frequency
 	radioTune(gps_get_region_frequency(), RADIO_POWER_APRS);
