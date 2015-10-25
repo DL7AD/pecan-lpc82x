@@ -65,7 +65,7 @@ int main(void)
 
 	// The actual program starts here
 
-	trackingstate_t trackingstate = SLEEP;
+	trackingstate_t trackingstate = TRANSMIT_CONFIG;
 	gpsstate_t gpsstate = GPS_LOSS;
 
 	track_t trackPoint;
