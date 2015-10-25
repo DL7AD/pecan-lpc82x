@@ -8,18 +8,6 @@
 #include "chip.h"
 
 
-/* The sine_table is the carrier signal. To achieve phase continuity, each tone
- * starts at the index where the previous one left off. By changing the stride of
- * the index (phase_delta) we get 1200 or 2200 Hz. The PHASE_DELTA_XXXX values
- * can be calculated as:
- * 
- * Fg = frequency of the output tone (1200 or 2200)
- * Fm = sampling rate (PLAYBACK_RATE_HZ)
- * Tt = sine table size (TABLE_SIZE)
- * 
- * PHASE_DELTA_Fg = Tt*(Fg/Fm)
- */
-
 #define TX_CPU_CLOCK		12000000
 #define PLAYBACK_RATE		(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
 #define BAUD_RATE			1200

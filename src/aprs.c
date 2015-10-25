@@ -114,6 +114,16 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 
 		ax25_send_string(temp);
 	};
+
+	// GPS Loss counter
+	if(gpsstate != GPS_LOCK)
+	{
+		ax25_send_string("GPS LOSS ");
+		ax25_send_string(itoa(++loss_of_gps_counter, temp, 10));
+	} else {
+		loss_of_gps_counter = 0;
+	}
+
 	{
 		temp[2] = 0;
 
@@ -149,21 +159,10 @@ void transmit_position(track_t *trackPoint, gpsstate_t gpsstate, uint16_t course
 		temp[1] = t%91 + 33;
 		ax25_send_string(temp);
 
-		// GPS Loss counter
-		if(gpsstate != GPS_LOCK)
-		{
-			if(loss_of_gps_counter >= 8191) // GPS lost 3 times (6min if cycle = 2min) TODO: This is actually not a task of APRS encoding
-				loss_of_gps_counter = 0;
-			loss_of_gps_counter++;
-		}
-
-		if(loss_of_gps_counter)
-		{
-			t = loss_of_gps_counter;
-			temp[0] = t/91 + 33;
-			temp[1] = t%91 + 33;
-			ax25_send_string(temp);
-		}
+		t = trackPoint->ttff;
+		temp[0] = t/91 + 33;
+		temp[1] = t%91 + 33;
+		ax25_send_string(temp);
 
 		ax25_send_byte('|');
 	};
