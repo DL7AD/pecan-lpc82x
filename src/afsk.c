@@ -8,12 +8,16 @@
 #include "chip.h"
 
 
-#define TX_CPU_CLOCK			((1865*(-10)) + 11955342)
-#define PLAYBACK_RATE			(TX_CPU_CLOCK / 256) // Tickrate 46.875 kHz
+#define TX_CPU_CLOCK_1			((1865*(temp)) + 11787492)
+
+#define CLOCK_PER_TICK			256
+
+#define PLAYBACK_RATE_1			(TX_CPU_CLOCK_1 / CLOCK_PER_TICK) // Tickrate 46.875 kHz
+
 #define BAUD_RATE				1200
-#define SAMPLES_PER_BAUD		(PLAYBACK_RATE / BAUD_RATE) // 52.083333333 / 26.041666667
-#define PHASE_DELTA_1200		(39321600 / PLAYBACK_RATE) // Fixed point 9.7 // 1258 / 2516
-#define PHASE_DELTA_2200		(72089600 / PLAYBACK_RATE) // 2306 / 4613
+#define SAMPLES_PER_BAUD		(PLAYBACK_RATE_1 / BAUD_RATE) // 52.083333333 / 26.041666667
+#define PHASE_DELTA_1200		(10066329600 / CLOCK_PER_TICK / PLAYBACK_RATE_1) // Fixed point 9.7 // 1258 / 2516
+#define PHASE_DELTA_2200		(18454937600 / CLOCK_PER_TICK / PLAYBACK_RATE_1) // 2306 / 4613
 
 
 // Module globals
@@ -46,8 +50,8 @@ void AFSK_Init(void)
 	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_SCT);
 	Chip_SYSCTL_PeriphReset(RESET_SCT);
 	Chip_SCT_Config(LPC_SCT, SCT_CONFIG_32BIT_COUNTER | SCT_CONFIG_CLKMODE_BUSCLK);
-	Chip_SCT_SetMatchCount(LPC_SCT, SCT_MATCH_0, TX_CPU_CLOCK / PLAYBACK_RATE);		// Set the match count for match register 0
-	Chip_SCT_SetMatchReload(LPC_SCT, SCT_MATCH_0, TX_CPU_CLOCK / PLAYBACK_RATE);	// Set the match reload value for match reload register 0
+	Chip_SCT_SetMatchCount(LPC_SCT, SCT_MATCH_0, CLOCK_PER_TICK);					// Set the match count for match register 0
+	Chip_SCT_SetMatchReload(LPC_SCT, SCT_MATCH_0, CLOCK_PER_TICK);					// Set the match reload value for match reload register 0
 	LPC_SCT->EV[0].CTRL = (1 << 12);												// Event 0 only happens on a match condition
 	LPC_SCT->EV[0].STATE = 0x00000001;												// Event 0 only happens in state 0
 	LPC_SCT->LIMIT_U = 0x00000001;													// Event 0 is used as the counter limit
